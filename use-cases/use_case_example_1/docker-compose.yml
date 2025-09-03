@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  data-generator:
+    build: 
+      context: .
+      dockerfile: services/data_generator/Dockerfile
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - energy-pipeline
+
+  data-analyzer:
+    build:
+      context: .
+      dockerfile: services/data_analyzer/Dockerfile
+    ports:
+      - "50052:50052"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - energy-pipeline
+    depends_on:
+      - data-generator
+
+  report-generator:
+    build:
+      context: .
+      dockerfile: services/report_generator/Dockerfile
+    ports:
+      - "50053:50053"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - energy-pipeline
+    depends_on:
+      - data-analyzer
+
+networks:
+  energy-pipeline:
+    driver: bridge
+
+volumes:
+  data:

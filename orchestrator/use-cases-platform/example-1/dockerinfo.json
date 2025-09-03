@@ -1,0 +1,16 @@
+{
+    "docker_image_list": [
+        {
+            "container_name": "data_analyzer1",
+            "image_name": "localhost:5000/data-analyzer:latest"
+        },
+        {
+            "container_name": "report_generator1",
+            "image_name": "localhost:5000/report-generator:latest"
+        },
+        {
+            "container_name": "data_generator1",
+            "image_name": "localhost:5000/data-generator:latest"
+        }
+    ]
+}

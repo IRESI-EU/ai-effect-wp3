@@ -1,0 +1,77 @@
+{
+    "nodes": [
+        {
+            "proto_uri": "org/acumos/data_analyzer/1.0.0/data_analyzer1.proto",
+            "image": "localhost:5000/data-analyzer:latest",
+            "node_type": "MLModel",
+            "container_name": "data_analyzer1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [
+                        {
+                            "container_name": "report_generator1",
+                            "operation_signature": {
+                                "operation_name": "GenerateReport"
+                            }
+                        }
+                    ],
+                    "operation_signature": {
+                        "operation_name": "AnalyzeData",
+                        "output_message_name": "AnalyzeDataResponse",
+                        "input_message_name": "AnalyzeDataRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        },
+        {
+            "proto_uri": "org/acumos/report_generator/1.0.0/report_generator1.proto",
+            "image": "localhost:5000/report-generator:latest",
+            "node_type": "MLModel",
+            "container_name": "report_generator1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [],
+                    "operation_signature": {
+                        "operation_name": "GenerateReport",
+                        "output_message_name": "GenerateReportResponse",
+                        "input_message_name": "GenerateReportRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        },
+        {
+            "proto_uri": "org/acumos/data_generator/1.0.0/data_generator1.proto",
+            "image": "localhost:5000/data-generator:latest",
+            "node_type": "MLModel",
+            "container_name": "data_generator1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [
+                        {
+                            "container_name": "data_analyzer1",
+                            "operation_signature": {
+                                "operation_name": "AnalyzeData"
+                            }
+                        }
+                    ],
+                    "operation_signature": {
+                        "operation_name": "GenerateData",
+                        "output_message_name": "GenerateDataResponse",
+                        "input_message_name": "GenerateDataRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        }
+    ],
+    "name": "Use Case Example 1",
+    "pipeline_id": "c5e8a304-bea9-4964-a295-11add8ee841a",
+    "creation_date": "2025-09-03 12:30:53.864887",
+    "type": "pipeline-topology/v2",
+    "version": "2.0"
+}
