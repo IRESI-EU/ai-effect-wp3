@@ -135,7 +135,7 @@ Work directly with services for development and testing:
 ```bash
 # Start services for development
 cd use-cases/example_1
-docker-compose up --build
+docker compose up --build
 
 # Services available at:
 # - Data Generator: localhost:50051
@@ -158,7 +158,7 @@ python orchestrator/scripts/docker-compose-generator.py \
   orchestrator/use-cases-platform/my-pipeline
 
 # Step 3: Deploy anywhere
-docker-compose -f orchestrator/use-cases-platform/my-pipeline/docker-compose.yml up -d
+docker compose -f orchestrator/use-cases-platform/my-pipeline/docker-compose.yml up -d
 ```
 
 ### 3. Using Existing Platform Export
@@ -170,7 +170,7 @@ Deploy pre-generated onboarding exports:
 python orchestrator/scripts/docker-compose-generator.py orchestrator/use-cases-platform/example-1
 
 # Deploy the services
-docker-compose -f orchestrator/use-cases-platform/example-1/docker-compose.yml up -d
+docker compose -f orchestrator/use-cases-platform/example-1/docker-compose.yml up -d
 ```
 
 ## Service Connection Configuration

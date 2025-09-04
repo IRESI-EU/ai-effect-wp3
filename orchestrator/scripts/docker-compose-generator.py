@@ -150,9 +150,9 @@ def main():
         print("DOCKER COMPOSE USAGE")
         print("="*60)
         print(f"Generated: {output_file}")
-        print(f"\n1. Start services: docker-compose -f {output_file} up -d")
-        print(f"2. View logs: docker-compose -f {output_file} logs -f")
-        print(f"3. Stop services: docker-compose -f {output_file} down")
+        print(f"\n1. Start services: docker compose -f {output_file} up -d")
+        print(f"2. View logs: docker compose -f {output_file} logs -f")
+        print(f"3. Stop services: docker compose -f {output_file} down")
         
         return 0
     except Exception as e:

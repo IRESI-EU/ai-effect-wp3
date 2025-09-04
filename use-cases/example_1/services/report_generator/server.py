@@ -2,11 +2,14 @@ import os
 import logging
 import grpc
 import pandas as pd
+import signal
+import sys
 from concurrent import futures
 from pathlib import Path
 
-# TODO: Generated proto files will be imported here
-# from generated import energy_pb2, energy_pb2_grpc
+# Import generated proto files
+import report_generator_pb2
+import report_generator_pb2_grpc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,17 +18,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class ReportGeneratorService:
+class ReportGeneratorService(report_generator_pb2_grpc.ReportGeneratorServiceServicer):
     """Generates summary reports from analyzed data"""
     
-    def Execute(self, request, context):
-        logger.info(f"Generating report from: {request.input_file} -> {request.output_file}")
+    def GenerateReport(self, request, context):
+        """Generate summary report from analyzed data"""
+        logger.info(f"GenerateReport called: input={request.analyzed_data_path}, format={request.report_format}")
         
         try:
             # Read analyzed data
-            input_path = Path(request.input_file)
+            input_path = Path(request.analyzed_data_path)
             if not input_path.exists():
-                raise FileNotFoundError(f"Input file not found: {request.input_file}")
+                raise FileNotFoundError(f"Input file not found: {request.analyzed_data_path}")
             
             df = pd.read_csv(input_path)
             
@@ -57,37 +61,62 @@ class ReportGeneratorService:
             }
             
             # Save report
-            output_path = Path(request.output_file)
+            output_path = Path("data/energy_report.csv")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
             report_df = pd.DataFrame(report_data)
             report_df.to_csv(output_path, index=False)
             
-            message = f"Generated summary report with {len(report_data['metric'])} metrics, saved to {request.output_file}"
+            message = f"Generated summary report with {len(report_data['metric'])} metrics, saved to {output_path}"
+            summary = f"Processed {total_records} records, found {int(anomaly_count)} anomalies"
+            
             logger.info(message)
             
-            # TODO: Return energy_pb2.ExecuteResponse(success=True, message=message)
-            return {"success": True, "message": message}  # Placeholder
+            # Return protobuf response
+            response = report_generator_pb2.GenerateReportResponse()
+            response.success = True
+            response.message = message
+            response.report_path = str(output_path)
+            response.report_summary = summary
+            
+            return response
             
         except Exception as e:
             error_msg = f"Failed to generate report: {str(e)}"
             logger.error(error_msg)
-            # TODO: Return energy_pb2.ExecuteResponse(success=False, message=error_msg)
-            return {"success": False, "message": error_msg}  # Placeholder
+            
+            # Return error response
+            response = report_generator_pb2.GenerateReportResponse()
+            response.success = False
+            response.message = error_msg
+            response.report_path = ""
+            response.report_summary = ""
+            
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(error_msg)
+            return response
 
 
 def serve(port: int = 50053):
     """Start the gRPC server"""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     
-    # TODO: Add servicer when proto is generated
-    # energy_pb2_grpc.add_ContainerExecutorServicer_to_server(
-    #     ReportGeneratorService(), server
-    # )
+    # Add the service to the server
+    report_generator_pb2_grpc.add_ReportGeneratorServiceServicer_to_server(
+        ReportGeneratorService(), server
+    )
     
     server.add_insecure_port(f"[::]:{port}")
     server.start()
     logger.info(f"Report Generator service listening on port {port}")
+    
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, shutting down gracefully")
+        server.stop(5)
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
     
     try:
         server.wait_for_termination()

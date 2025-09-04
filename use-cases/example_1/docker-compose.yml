@@ -38,6 +38,19 @@ services:
     depends_on:
       - data-analyzer
 
+  services-tester:
+    build:
+      context: .
+      dockerfile: services-tester/Dockerfile
+    volumes:
+      - ./data:/app/data
+    networks:
+      - energy-pipeline
+    depends_on:
+      - data-generator
+      - data-analyzer
+      - report-generator
+
 networks:
   energy-pipeline:
     driver: bridge

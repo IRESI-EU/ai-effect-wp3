@@ -2,11 +2,14 @@ import os
 import logging
 import grpc
 import pandas as pd
+import signal
+import sys
 from concurrent import futures
 from pathlib import Path
 
-# TODO: Generated proto files will be imported here
-# from generated import energy_pb2, energy_pb2_grpc
+# Import generated proto files
+import data_analyzer_pb2
+import data_analyzer_pb2_grpc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,22 +18,26 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class DataAnalyzerService:
+class DataAnalyzerService(data_analyzer_pb2_grpc.DataAnalyzerServiceServicer):
     """Analyzes energy data and detects anomalies"""
     
-    def Execute(self, request, context):
-        logger.info(f"Analyzing data from: {request.input_file} -> {request.output_file}")
+    def AnalyzeData(self, request, context):
+        """Analyze energy data for anomalies and efficiency"""
+        logger.info(f"AnalyzeData called: input={request.input_file_path}, threshold={request.anomaly_threshold}")
         
         try:
             # Read input CSV file
-            input_path = Path(request.input_file)
+            input_path = Path(request.input_file_path)
             if not input_path.exists():
-                raise FileNotFoundError(f"Input file not found: {request.input_file}")
+                raise FileNotFoundError(f"Input file not found: {request.input_file_path}")
             
             df = pd.read_csv(input_path)
             
             # Perform analysis
             analyzed_data = []
+            anomaly_count = 0
+            total_efficiency = 0
+            
             for _, row in df.iterrows():
                 power = float(row['power_consumption'])
                 voltage = float(row['voltage'])
@@ -38,9 +45,13 @@ class DataAnalyzerService:
                 
                 # Calculate efficiency
                 efficiency = power / (voltage * current) if (voltage * current) != 0 else 0
+                total_efficiency += efficiency
                 
-                # Detect anomalies (simple threshold)
-                anomaly = efficiency < 0.1 or efficiency > 0.95
+                # Detect anomalies
+                anomaly = efficiency < request.anomaly_threshold or efficiency > 0.95
+                if anomaly:
+                    anomaly_count += 1
+                
                 status = "anomaly" if anomaly else "normal"
                 
                 analyzed_data.append({
@@ -53,37 +64,64 @@ class DataAnalyzerService:
                 })
             
             # Save analyzed data
-            output_path = Path(request.output_file)
+            output_path = Path("data/analyzed_energy.csv")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
             analyzed_df = pd.DataFrame(analyzed_data)
             analyzed_df.to_csv(output_path, index=False)
             
-            message = f"Analyzed {len(analyzed_data)} records, saved to {request.output_file}"
+            avg_efficiency = total_efficiency / len(analyzed_data) if analyzed_data else 0
+            
+            message = f"Analyzed {len(analyzed_data)} records, saved to {output_path}"
             logger.info(message)
             
-            # TODO: Return energy_pb2.ExecuteResponse(success=True, message=message)
-            return {"success": True, "message": message}  # Placeholder
+            # Return protobuf response
+            response = data_analyzer_pb2.AnalyzeDataResponse()
+            response.success = True
+            response.message = message
+            response.total_records = len(analyzed_data)
+            response.anomalies_detected = anomaly_count
+            response.average_efficiency = avg_efficiency
+            
+            return response
             
         except Exception as e:
             error_msg = f"Failed to analyze data: {str(e)}"
             logger.error(error_msg)
-            # TODO: Return energy_pb2.ExecuteResponse(success=False, message=error_msg)
-            return {"success": False, "message": error_msg}  # Placeholder
+            
+            # Return error response
+            response = data_analyzer_pb2.AnalyzeDataResponse()
+            response.success = False
+            response.message = error_msg
+            response.total_records = 0
+            response.anomalies_detected = 0
+            response.average_efficiency = 0.0
+            
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(error_msg)
+            return response
 
 
 def serve(port: int = 50052):
     """Start the gRPC server"""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     
-    # TODO: Add servicer when proto is generated
-    # energy_pb2_grpc.add_ContainerExecutorServicer_to_server(
-    #     DataAnalyzerService(), server
-    # )
+    # Add the service to the server
+    data_analyzer_pb2_grpc.add_DataAnalyzerServiceServicer_to_server(
+        DataAnalyzerService(), server
+    )
     
     server.add_insecure_port(f"[::]:{port}")
     server.start()
     logger.info(f"Data Analyzer service listening on port {port}")
+    
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, shutting down gracefully")
+        server.stop(5)
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
     
     try:
         server.wait_for_termination()
