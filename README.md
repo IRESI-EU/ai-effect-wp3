@@ -19,7 +19,7 @@ ai-effect-wp3/
 │               ├── data_analyzer1.proto
 │               └── report_generator1.proto
 ├── use-cases/                                       # Service implementations
-│   └── example_1/                                  # Example energy processing pipeline
+│   └── file_based_energy_pipeline/                # File-based energy processing pipeline
 │       ├── connections.json                        # Pipeline topology configuration
 │       ├── docker-compose.yml                      # Development deployment
 │       ├── data/                                   # Shared data directory
@@ -60,7 +60,7 @@ Converts a use case directory with services into an AI-Effect onboarding export 
 
 **Usage**:
 ```bash
-python orchestrator/scripts/onboarding-export-generator.py use-cases/example_1 orchestrator/use-cases-platform/example-1 --overwrite
+python orchestrator/scripts/onboarding-export-generator.py use-cases/file_based_energy_pipeline orchestrator/use-cases-platform/file-based-energy-pipeline --overwrite
 ```
 
 **What it does**:
@@ -134,7 +134,7 @@ Work directly with services for development and testing:
 
 ```bash
 # Start services for development
-cd use-cases/example_1
+cd use-cases/file_based_energy_pipeline
 docker compose up --build
 
 # Services available at:
@@ -150,7 +150,7 @@ Generate deployment configurations from service definitions:
 ```bash
 # Step 1: Generate onboarding export from services
 python orchestrator/scripts/onboarding-export-generator.py \
-  use-cases/example_1 \
+  use-cases/file_based_energy_pipeline \
   orchestrator/use-cases-platform/my-pipeline
 
 # Step 2: Generate docker-compose.yml from export
@@ -212,7 +212,7 @@ Define service connections in `connections.json` within your use case directory:
 ### onboarding-export-generator.py
 
 **Arguments**:
-- `use_case_dir`: Path to use case directory (e.g., `use-cases/example_1`)
+- `use_case_dir`: Path to use case directory (e.g., `use-cases/file_based_energy_pipeline`)
 - `output_dir`: Path to output directory in platform (e.g., `orchestrator/use-cases-platform/example-1`)
 - `--overwrite`: Overwrite existing output directory
 
