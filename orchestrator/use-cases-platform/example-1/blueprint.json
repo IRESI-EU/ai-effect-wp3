@@ -1,7 +1,7 @@
 {
     "nodes": [
         {
-            "proto_uri": "org/acumos/data_analyzer/1.0.0/data_analyzer1.proto",
+            "proto_uri": "microservice/data_analyzer1.proto",
             "image": "localhost:5000/data-analyzer:latest",
             "node_type": "MLModel",
             "container_name": "data_analyzer1",
@@ -26,7 +26,7 @@
             ]
         },
         {
-            "proto_uri": "org/acumos/report_generator/1.0.0/report_generator1.proto",
+            "proto_uri": "microservice/report_generator1.proto",
             "image": "localhost:5000/report-generator:latest",
             "node_type": "MLModel",
             "container_name": "report_generator1",
@@ -44,7 +44,7 @@
             ]
         },
         {
-            "proto_uri": "org/acumos/data_generator/1.0.0/data_generator1.proto",
+            "proto_uri": "microservice/data_generator1.proto",
             "image": "localhost:5000/data-generator:latest",
             "node_type": "MLModel",
             "container_name": "data_generator1",

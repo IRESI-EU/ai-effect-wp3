@@ -116,7 +116,7 @@ class OnboardingExportGenerator:
         
         # Generate node
         node = {
-            "proto_uri": f"org/acumos/{service['name']}/1.0.0/{service['container_name']}.proto",
+            "proto_uri": f"microservice/{service['container_name']}.proto",
             "image": f"localhost:5000/{service['name'].replace('_', '-')}:latest",
             "node_type": "MLModel",
             "container_name": service['container_name'],
