@@ -139,7 +139,6 @@ echo "You can now run: docker compose up -d"
         # Load configuration files
         blueprint = self.load_blueprint(blueprint_file)
         image_mapping = self.load_dockerinfo(dockerinfo_file)
-        metadata = self.load_metadata(metadata_file)
 
         # Extract service dependencies
         dependencies = self.extract_dependencies(blueprint)
@@ -170,9 +169,15 @@ echo "You can now run: docker compose up -d"
         with open(output_file, 'w') as f:
             yaml.dump(compose_config, f, default_flow_style=False, indent=2)
 
-        # Generate build script using metadata
+        # Generate build script if metadata is available (local development)
         output_dir = Path(output_file).parent
-        self.generate_build_script(metadata, output_dir)
+        if metadata_file and metadata_file.exists():
+            metadata = self.load_metadata(metadata_file)
+            self.generate_build_script(metadata, output_dir)
+            print(f"Generated build script: {output_dir / 'build_and_tag.sh'}")
+        else:
+            print("No metadata file found - skipping build script generation")
+            print("Assuming images are available in registries")
 
         print(f"Generated docker-compose.yml with {len(self.services)} services")
         return compose_config
@@ -202,10 +207,6 @@ def main():
         print(f"Error: Docker info file {dockerinfo_file} not found")
         return 1
 
-    if not metadata_file.exists():
-        print(f"Error: Metadata file {metadata_file} not found")
-        return 1
-
     # Generate docker-compose.yml
     generator = DockerComposeGenerator(base_port=args.base_port)
     try:
@@ -215,11 +216,18 @@ def main():
         print("DOCKER COMPOSE USAGE")
         print("="*60)
         print(f"Generated: {output_file}")
-        print(f"Generated: {onboarding_path / 'build_and_tag.sh'}")
-        print(f"\n1. Build images: ./build_and_tag.sh")
-        print(f"2. Start services: docker compose up -d")
-        print(f"3. View logs: docker compose logs -f")
-        print(f"4. Stop services: docker compose down")
+
+        if metadata_file and metadata_file.exists():
+            print(f"Generated: {onboarding_path / 'build_and_tag.sh'}")
+            print(f"\n1. Build images: ./build_and_tag.sh")
+            print(f"2. Start services: docker compose up -d")
+            print(f"3. View logs: docker compose logs -f")
+            print(f"4. Stop services: docker compose down")
+        else:
+            print(f"\n1. Start services: docker compose up -d")
+            print(f"2. View logs: docker compose logs -f")
+            print(f"3. Stop services: docker compose down")
+            print(f"\nNote: No build script generated - assuming images available in registries")
         
         return 0
     except Exception as e:

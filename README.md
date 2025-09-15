@@ -114,9 +114,9 @@ python orchestrator/scripts/docker-compose-generator.py orchestrator/use-cases-p
   - Shared volumes for data exchange
   - Service dependencies based on blueprint connections
   - Environment variables for gRPC configuration
-- Creates `build_and_tag.sh` script for building required Docker images
+- Creates `build_and_tag.sh` script for building required Docker images (when metadata is available)
 
-**Output**: `docker-compose.yml` and `build_and_tag.sh` in the onboarding export directory
+**Output**: `docker-compose.yml` in the onboarding export directory, plus `build_and_tag.sh` for local development
 
 ## Example Services
 
@@ -168,21 +168,20 @@ cd orchestrator/use-cases-platform/my-pipeline
 docker compose up -d
 ```
 
-### 3. Using Existing Platform Export
+### 3. Using Platform Downloads
 
-Deploy pre-generated onboarding exports:
+Deploy onboarding exports downloaded from AI-Effect platform:
 
 ```bash
-# Generate deployment config from existing export
-python orchestrator/scripts/docker-compose-generator.py orchestrator/use-cases-platform/example-1
+# Generate deployment config from platform export
+python orchestrator/scripts/docker-compose-generator.py path/to/downloaded/export
 
-# Build required images
-cd orchestrator/use-cases-platform/example-1
-./build_and_tag.sh
-
-# Deploy the services
+# Deploy the services (images should be available in registries)
+cd path/to/downloaded/export
 docker compose up -d
 ```
+
+**Note**: Platform downloads don't include build scripts since images are expected to be available in registries.
 
 ## Service Connection Configuration
 
@@ -278,7 +277,7 @@ All other dependencies are handled per-service via requirements.txt files.
 - All services use standardized internal port 50051 with environment variable configuration
 - External ports are auto-assigned starting from 50051 in generated docker-compose.yml
 - Services read `GRPC_PORT` environment variable to configure their listening port
-- The `build_and_tag.sh` script builds images from source use case directories
+- Build scripts are generated only for local development (when source metadata is available)
+- Platform downloads use registry images and don't require build scripts
 - Data directory is shared between services via Docker volumes
 - The `use-cases-platform/` directory mimics what would be downloaded from the AI-Effect platform
-- Generated metadata files provide explicit service-to-path mappings for reliable builds
