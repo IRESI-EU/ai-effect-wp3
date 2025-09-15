@@ -14,6 +14,9 @@ ai-effect-wp3/
 │       └── example-1/                              # Example onboarding export
 │           ├── blueprint.json                       # Pipeline topology definition
 │           ├── dockerinfo.json                      # Docker image mappings
+│           ├── generation_metadata.json             # Service and path metadata
+│           ├── docker-compose.yml                   # Generated deployment config
+│           ├── build_and_tag.sh                     # Image build script
 │           └── microservice/                        # Service proto files
 │               ├── data_generator1.proto
 │               ├── data_analyzer1.proto
@@ -69,6 +72,7 @@ python orchestrator/scripts/onboarding-export-generator.py use-cases/file_based_
 - Reads `connections.json` to determine service topology
 - Generates `blueprint.json` with proper AI-Effect format including service connections
 - Generates `dockerinfo.json` with Docker image mappings
+- Creates `generation_metadata.json` with service and path information
 - Copies proto files to microservice directory with AI-Effect naming convention
 
 **Requires**: `connections.json` file defining service connections:
@@ -103,22 +107,24 @@ python orchestrator/scripts/docker-compose-generator.py orchestrator/use-cases-p
 **What it does**:
 - Reads `blueprint.json` for service topology and connections
 - Reads `dockerinfo.json` for Docker image mappings
+- Reads `generation_metadata.json` for service and path information
 - Generates complete docker-compose.yml with:
   - Service definitions with auto-assigned ports starting from 50051
   - Network configuration (ai-effect-pipeline)
   - Shared volumes for data exchange
   - Service dependencies based on blueprint connections
   - Environment variables for gRPC configuration
+- Creates `build_and_tag.sh` script for building required Docker images
 
-**Output**: `docker-compose.yml` in the onboarding export directory that can be deployed anywhere
+**Output**: `docker-compose.yml` and `build_and_tag.sh` in the onboarding export directory
 
 ## Example Services
 
 The project includes three example services for energy data processing:
 
-1. **Data Generator** (port 50051): Generates synthetic energy consumption data
-2. **Data Analyzer** (port 50052): Analyzes data for anomalies and calculates efficiency
-3. **Report Generator** (port 50053): Creates summary reports from analyzed data
+1. **Data Generator**: Generates synthetic energy consumption data
+2. **Data Analyzer**: Analyzes data for anomalies and calculates efficiency
+3. **Report Generator**: Creates summary reports from analyzed data
 
 Each service:
 - Has its own protobuf definition in `proto/` subdirectory
@@ -137,10 +143,7 @@ Work directly with services for development and testing:
 cd use-cases/file_based_energy_pipeline
 docker compose up --build
 
-# Services available at:
-# - Data Generator: localhost:50051
-# - Data Analyzer: localhost:50052
-# - Report Generator: localhost:50053
+# Services will be available on auto-assigned ports
 ```
 
 ### 2. Production Deployment Workflow
@@ -157,8 +160,12 @@ python orchestrator/scripts/onboarding-export-generator.py \
 python orchestrator/scripts/docker-compose-generator.py \
   orchestrator/use-cases-platform/my-pipeline
 
-# Step 3: Deploy anywhere
-docker compose -f orchestrator/use-cases-platform/my-pipeline/docker-compose.yml up -d
+# Step 3: Build required images
+cd orchestrator/use-cases-platform/my-pipeline
+./build_and_tag.sh
+
+# Step 4: Deploy anywhere
+docker compose up -d
 ```
 
 ### 3. Using Existing Platform Export
@@ -169,8 +176,12 @@ Deploy pre-generated onboarding exports:
 # Generate deployment config from existing export
 python orchestrator/scripts/docker-compose-generator.py orchestrator/use-cases-platform/example-1
 
+# Build required images
+cd orchestrator/use-cases-platform/example-1
+./build_and_tag.sh
+
 # Deploy the services
-docker compose -f orchestrator/use-cases-platform/example-1/docker-compose.yml up -d
+docker compose up -d
 ```
 
 ## Service Connection Configuration
@@ -222,7 +233,8 @@ Define service connections in `connections.json` within your use case directory:
 3. Loads `connections.json` to understand pipeline topology
 4. Creates AI-Effect compatible `blueprint.json` with proper service connections
 5. Creates `dockerinfo.json` mapping containers to Docker images
-6. Copies proto files to `microservice/` with AI-Effect naming (adds '1' suffix)
+6. Creates `generation_metadata.json` with service and path metadata
+7. Copies proto files to `microservice/` with AI-Effect naming (adds '1' suffix)
 
 ### docker-compose-generator.py
 
@@ -232,12 +244,15 @@ Define service connections in `connections.json` within your use case directory:
 **Process**:
 1. Reads `blueprint.json` to extract service definitions and connections
 2. Reads `dockerinfo.json` to get Docker image mappings
-3. Generates docker-compose.yml with:
-   - Services using pre-built images from registry
-   - Ports auto-assigned starting from 50051
+3. Reads `generation_metadata.json` to get service and path information
+4. Generates docker-compose.yml with:
+   - Services with standardized internal ports (50051)
+   - External ports auto-assigned starting from 50051
    - AI-Effect pipeline network
    - Shared data volumes
    - Proper service dependencies
+   - Environment variables for gRPC port configuration
+5. Creates `build_and_tag.sh` script for building images from source
 
 ## Key Features
 
@@ -260,7 +275,10 @@ All other dependencies are handled per-service via requirements.txt files.
 ## Notes
 
 - Services use insecure gRPC channels (suitable for development/internal networks)
-- Ports are auto-assigned starting from 50051 in generated docker-compose.yml
-- Generated exports use localhost:5000 registry (customize as needed for your registry)
+- All services use standardized internal port 50051 with environment variable configuration
+- External ports are auto-assigned starting from 50051 in generated docker-compose.yml
+- Services read `GRPC_PORT` environment variable to configure their listening port
+- The `build_and_tag.sh` script builds images from source use case directories
 - Data directory is shared between services via Docker volumes
 - The `use-cases-platform/` directory mimics what would be downloaded from the AI-Effect platform
+- Generated metadata files provide explicit service-to-path mappings for reliable builds
