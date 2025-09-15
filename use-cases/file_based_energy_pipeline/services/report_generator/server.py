@@ -97,7 +97,7 @@ class ReportGeneratorService(report_generator_pb2_grpc.ReportGeneratorServiceSer
             return response
 
 
-def serve(port: int = 50053):
+def serve(port: int = 50051):
     """Start the gRPC server"""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     
@@ -126,4 +126,6 @@ def serve(port: int = 50053):
 
 
 if __name__ == "__main__":
-    serve()
+    # Use GRPC_PORT environment variable or default to 50051
+    port = int(os.environ.get('GRPC_PORT', 50051))
+    serve(port)

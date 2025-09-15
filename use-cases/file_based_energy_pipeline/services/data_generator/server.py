@@ -97,4 +97,6 @@ def serve(port: int = 50051):
 
 
 if __name__ == "__main__":
-    serve()
+    # Use GRPC_PORT environment variable or default to 50051
+    port = int(os.environ.get('GRPC_PORT', 50051))
+    serve(port)

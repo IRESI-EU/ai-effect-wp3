@@ -117,7 +117,7 @@ class OnboardingExportGenerator:
         # Generate node
         node = {
             "proto_uri": f"microservice/{service['container_name']}.proto",
-            "image": f"localhost:5000/{service['name'].replace('_', '-')}:latest",
+            "image": f"{self.use_case_dir.name}-{service['name'].replace('_', '-')}:latest",
             "node_type": "MLModel",
             "container_name": service['container_name'],
             "operation_signature_list": operation_signatures
@@ -223,18 +223,18 @@ class OnboardingExportGenerator:
     def generate_dockerinfo(self, services):
         """Generate dockerinfo.json"""
         docker_image_list = []
-        
+
         for service in services:
             docker_info = {
                 "container_name": service['container_name'],
-                "image_name": f"localhost:5000/{service['name'].replace('_', '-')}:latest"
+                "image_name": f"{self.use_case_dir.name}-{service['name'].replace('_', '-')}:latest"
             }
             docker_image_list.append(docker_info)
-        
+
         dockerinfo = {
             "docker_image_list": docker_image_list
         }
-        
+
         return dockerinfo
     
     def copy_proto_files(self, services):
@@ -248,36 +248,62 @@ class OnboardingExportGenerator:
             shutil.copy2(src_proto, dst_proto)
             print(f"Copied: {src_proto} -> {dst_proto}")
     
+    def generate_metadata(self, services):
+        """Generate generation_metadata.json with use case and service information"""
+        metadata = {
+            "use_case_name": self.use_case_dir.name,
+            "use_case_directory": self.use_case_dir.name,
+            "source_path": f"../../../use-cases/{self.use_case_dir.name}",
+            "services": []
+        }
+
+        for service in services:
+            service_metadata = {
+                "service_name": service['name'],
+                "container_name": service['container_name'],
+                "image_name": f"{self.use_case_dir.name}-{service['name'].replace('_', '-')}:latest"
+            }
+            metadata["services"].append(service_metadata)
+
+        return metadata
+
     def generate_export(self):
         """Generate complete onboarding export"""
         print(f"Generating onboarding export from: {self.use_case_dir}")
         print(f"Output directory: {self.output_dir}")
-        
+
         # Create output directory
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Scan services
         services = self.scan_services()
         if not services:
             raise ValueError("No services with proto files found")
-        
+
         # Generate blueprint.json
         blueprint = self.generate_blueprint(services)
         blueprint_file = self.output_dir / 'blueprint.json'
         with open(blueprint_file, 'w') as f:
             json.dump(blueprint, f, indent=4)
         print(f"Generated: {blueprint_file}")
-        
+
         # Generate dockerinfo.json
         dockerinfo = self.generate_dockerinfo(services)
         dockerinfo_file = self.output_dir / 'dockerinfo.json'
         with open(dockerinfo_file, 'w') as f:
             json.dump(dockerinfo, f, indent=4)
         print(f"Generated: {dockerinfo_file}")
-        
+
+        # Generate generation_metadata.json
+        metadata = self.generate_metadata(services)
+        metadata_file = self.output_dir / 'generation_metadata.json'
+        with open(metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=4)
+        print(f"Generated: {metadata_file}")
+
         # Copy proto files
         self.copy_proto_files(services)
-        
+
         print(f"\nSuccessfully generated onboarding export with {len(services)} services")
         return True
 
@@ -311,7 +337,8 @@ def main():
         print(f"Location: {args.output_dir}")
         print("\nFiles created:")
         print("- blueprint.json")
-        print("- dockerinfo.json") 
+        print("- dockerinfo.json")
+        print("- generation_metadata.json")
         print("- microservice/*.proto")
         print(f"\nTo generate docker-compose.yml:")
         print(f"python docker-compose-generator.py {args.output_dir}")

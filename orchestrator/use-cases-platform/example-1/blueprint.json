@@ -2,7 +2,7 @@
     "nodes": [
         {
             "proto_uri": "microservice/data_analyzer1.proto",
-            "image": "localhost:5000/data-analyzer:latest",
+            "image": "file_based_energy_pipeline-data-analyzer:latest",
             "node_type": "MLModel",
             "container_name": "data_analyzer1",
             "operation_signature_list": [
@@ -27,7 +27,7 @@
         },
         {
             "proto_uri": "microservice/report_generator1.proto",
-            "image": "localhost:5000/report-generator:latest",
+            "image": "file_based_energy_pipeline-report-generator:latest",
             "node_type": "MLModel",
             "container_name": "report_generator1",
             "operation_signature_list": [
@@ -45,7 +45,7 @@
         },
         {
             "proto_uri": "microservice/data_generator1.proto",
-            "image": "localhost:5000/data-generator:latest",
+            "image": "file_based_energy_pipeline-data-generator:latest",
             "node_type": "MLModel",
             "container_name": "data_generator1",
             "operation_signature_list": [
@@ -69,9 +69,9 @@
             ]
         }
     ],
-    "name": "Use Case Example 1",
-    "pipeline_id": "c5e8a304-bea9-4964-a295-11add8ee841a",
-    "creation_date": "2025-09-03 12:30:53.864887",
+    "name": "File Based Energy Pipeline",
+    "pipeline_id": "27144e40-844b-4d77-8c07-e2108d7f163b",
+    "creation_date": "2025-09-15 12:20:18.185180",
     "type": "pipeline-topology/v2",
     "version": "2.0"
 }
