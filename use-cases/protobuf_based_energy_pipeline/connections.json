@@ -1,0 +1,21 @@
+{
+  "pipeline": {
+    "name": "Protobuf-Based Energy Data Processing Pipeline",
+    "description": "Direct protobuf message passing pipeline for energy data processing without intermediate files",
+    "start_service": "data_generator",
+    "connections": [
+      {
+        "from_service": "data_generator",
+        "from_method": "GenerateData",
+        "to_service": "data_analyzer",
+        "to_method": "AnalyzeData"
+      },
+      {
+        "from_service": "data_analyzer",
+        "from_method": "AnalyzeData",
+        "to_service": "report_generator",
+        "to_method": "GenerateReport"
+      }
+    ]
+  }
+}

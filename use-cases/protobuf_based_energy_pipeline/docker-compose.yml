@@ -1,0 +1,44 @@
+services:
+  data_generator:
+    build:
+      context: .
+      dockerfile: services/data_generator/Dockerfile
+    container_name: protobuf_data_generator
+    environment:
+      - GRPC_PORT=50051
+    ports:
+      - "50051:50051"
+    networks:
+      - energy_pipeline_net
+
+  data_analyzer:
+    build:
+      context: .
+      dockerfile: services/data_analyzer/Dockerfile
+    container_name: protobuf_data_analyzer
+    environment:
+      - GRPC_PORT=50051
+    ports:
+      - "50052:50051"
+    networks:
+      - energy_pipeline_net
+    depends_on:
+      - data_generator
+
+  report_generator:
+    build:
+      context: .
+      dockerfile: services/report_generator/Dockerfile
+    container_name: protobuf_report_generator
+    environment:
+      - GRPC_PORT=50051
+    ports:
+      - "50053:50051"
+    networks:
+      - energy_pipeline_net
+    depends_on:
+      - data_analyzer
+
+networks:
+  energy_pipeline_net:
+    driver: bridge
