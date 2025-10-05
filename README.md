@@ -1,91 +1,259 @@
-# AI-Effect Orchestrator with Example Services
+# AI-Effect Orchestrator and Service Pipeline Framework
 
-A complete orchestration system for AI-Effect services with tools for generating deployment configurations from service definitions.
+A complete framework for developing, packaging, and deploying AI-Effect microservice pipelines with automated orchestration capabilities. This system provides tools for service development, export generation, and containerized deployment compatible with AI-Effect platform specifications.
+
+## Overview
+
+This framework implements a complete workflow for AI-Effect service pipelines, from development through deployment. It includes an orchestrator that dynamically executes workflows based on blueprint specifications, automatically managing service dependencies and execution order.
 
 ## Project Structure
 
 ```
 ai-effect-wp3/
-├── orchestrator/                                    # Orchestration tools and platform exports
-│   ├── scripts/                                     # Generation tools
-│   │   ├── docker-compose-generator.py              # Generate docker-compose from onboarding export
-│   │   └── onboarding-export-generator.py           # Generate onboarding export from services
-│   └── use-cases-platform/                         # Generated AI-Effect export packages
-│       └── example-1/                              # Example onboarding export
-│           ├── blueprint.json                       # Pipeline topology definition
-│           ├── dockerinfo.json                      # Docker image mappings
-│           ├── generation_metadata.json             # Service and path metadata
-│           ├── docker-compose.yml                   # Generated deployment config
-│           ├── build_and_tag.sh                     # Image build script
-│           └── microservice/                        # Service proto files
-│               ├── data_generator1.proto
-│               ├── data_analyzer1.proto
-│               └── report_generator1.proto
-├── use-cases/                                       # Service implementations
-│   └── file_based_energy_pipeline/                # File-based energy processing pipeline
-│       ├── connections.json                        # Pipeline topology configuration
-│       ├── docker-compose.yml                      # Development deployment
-│       ├── data/                                   # Shared data directory
-│       └── services/                               # Individual services
-│           ├── data_generator/                     # Energy data generation service
-│           │   ├── proto/data_generator.proto      # Service-specific protocol definition
-│           │   ├── server.py                       # gRPC service implementation
-│           │   ├── Dockerfile                      # Container build instructions
-│           │   └── requirements.txt                # Python dependencies
-│           ├── data_analyzer/                      # Energy data analysis service
+├── scripts/                                         # Build and generation tools
+│   ├── build-script-generator.py                    # Generates build scripts for use cases
+│   ├── onboarding-export-generator.py               # Creates platform export packages
+│   └── docker-compose-generator.py                  # Generates deployment configurations
+├── orchestrator/                                    # Workflow orchestrator implementation
+│   ├── Dockerfile                                   # Orchestrator container build
+│   ├── orchestrator.py                              # Main entry point
+│   ├── requirements.txt                             # Python dependencies
+│   └── src/                                         # Source code
+│       ├── main.py                                  # CLI interface
+│       ├── models/                                  # Data models
+│       │   ├── node.py                              # Blueprint node models
+│       │   └── graph.py                             # Execution graph models
+│       └── services/                                # Core services
+│           ├── blueprint_service.py                 # Blueprint parsing
+│           ├── dockerinfo_service.py                # Network configuration
+│           ├── graph_service.py                     # Dependency resolution
+│           ├── grpc_service.py                      # Dynamic gRPC client
+│           ├── log_service.py                       # Logging configuration
+│           └── orchestration_service.py             # Workflow execution
+├── use-cases/                                       # Development workspace
+│   └── file_based_energy_pipeline/                 # Example pipeline
+│       ├── connections.json                         # Pipeline topology
+│       ├── docker-compose.yml                       # Development deployment
+│       ├── build_and_tag.sh                         # Build script (generated)
+│       ├── data/                                    # Shared data volume
+│       └── services/                                # Service implementations
+│           ├── data_generator/                      # Data generation service
+│           │   ├── proto/data_generator.proto       # Service interface
+│           │   ├── server.py                        # Service implementation
+│           │   ├── Dockerfile                       # Container definition
+│           │   └── requirements.txt                 # Dependencies
+│           ├── data_analyzer/                       # Analysis service
 │           │   ├── proto/data_analyzer.proto
 │           │   ├── server.py
 │           │   ├── Dockerfile
 │           │   └── requirements.txt
-│           └── report_generator/                   # Report generation service
+│           └── report_generator/                    # Reporting service
 │               ├── proto/report_generator.proto
 │               ├── server.py
 │               ├── Dockerfile
 │               └── requirements.txt
-└── README.md                                       # This file
+└── use-cases-platform/                              # Platform export packages
+    └── .gitignore                                   # Excludes generated content
 ```
 
-## Architecture Overview
+## Architecture
 
-The AI-Effect orchestrator follows a three-phase approach:
+### Four-Phase Workflow
 
-1. **Service Development Phase**: Developers create individual services with their own proto files in `use-cases/`
-2. **Onboarding Export Phase**: Services are packaged into AI-Effect onboarding exports in `orchestrator/use-cases-platform/`
-3. **Deployment Phase**: Onboarding exports are converted to deployment configurations
+1. **Development Phase**: Create services with protobuf interfaces in `use-cases/`
+2. **Build Phase**: Generate and execute build scripts to create Docker images
+3. **Export Phase**: Package services into AI-Effect platform export format
+4. **Deployment Phase**: Deploy via docker-compose with orchestrator automation
 
-## Tools
+### Orchestrator
 
-### 1. Onboarding Export Generator
+The orchestrator is a containerized service that:
+- Reads blueprint.json to understand pipeline topology
+- Parses dockerinfo.json for service network configuration
+- Dynamically compiles protobuf definitions at runtime
+- Resolves service dependencies and execution order
+- Executes workflows with parallel level processing
+- Handles data flow between services via gRPC
+- Runs as a container within the Docker network
 
-Converts a use case directory with services into an AI-Effect onboarding export package.
+## Quick Start Tutorial
 
-**Location**: `orchestrator/scripts/onboarding-export-generator.py`
+### Prerequisites
+
+- Docker and Docker Compose
+- Python 3.11+
+- PyYAML library: `pip install PyYAML`
+
+### Step 1: Generate Build Script
+
+```bash
+python scripts/build-script-generator.py use-cases/file_based_energy_pipeline
+```
+
+This creates `use-cases/file_based_energy_pipeline/build_and_tag.sh`.
+
+### Step 2: Build Docker Images
+
+```bash
+cd use-cases/file_based_energy_pipeline
+./build_and_tag.sh
+cd ../..
+```
+
+This builds all service containers and tags them appropriately.
+
+### Step 3: Generate Platform Export
+
+```bash
+python scripts/onboarding-export-generator.py \
+  use-cases/file_based_energy_pipeline \
+  use-cases-platform/file_based_energy_pipeline \
+  --overwrite
+```
+
+This creates the platform export package with:
+- blueprint.json
+- dockerinfo.json
+- generation_metadata.json
+- microservice/*.proto files
+
+### Step 4: Generate Deployment Configuration
+
+```bash
+python scripts/docker-compose-generator.py \
+  use-cases-platform/file_based_energy_pipeline \
+  --orchestrator-path orchestrator
+```
+
+This generates docker-compose.yml with orchestrator integration.
+
+### Step 5: Deploy and Execute
+
+```bash
+cd use-cases-platform/file_based_energy_pipeline
+docker compose up --build
+```
+
+The orchestrator will:
+- Read the blueprint and dockerinfo configuration
+- Compile protobuf definitions
+- Execute the workflow in proper dependency order
+- Output results and exit
+
+View results:
+```bash
+docker compose logs orchestrator
+```
+
+Clean up:
+```bash
+docker compose down
+```
+
+## Tools Reference
+
+### build-script-generator.py
+
+Generates build scripts for use cases.
 
 **Usage**:
 ```bash
-python orchestrator/scripts/onboarding-export-generator.py use-cases/file_based_energy_pipeline orchestrator/use-cases-platform/file-based-energy-pipeline --overwrite
+python scripts/build-script-generator.py <use_case_dir>
 ```
 
-**What it does**:
-- Scans services directory for proto files
-- Parses proto files to extract RPC methods and message types
-- Reads `connections.json` to determine service topology
-- Generates `blueprint.json` with proper AI-Effect format including service connections
-- Generates `dockerinfo.json` with Docker image mappings
-- Creates `generation_metadata.json` with service and path information
-- Copies proto files to microservice directory with AI-Effect naming convention
+**Arguments**:
+- `use_case_dir`: Path to use case directory containing docker-compose.yml
 
-**Requires**: `connections.json` file defining service connections:
+**Process**:
+1. Reads docker-compose.yml to discover services
+2. Generates bash script that builds and tags all images
+3. Creates executable build_and_tag.sh in use case directory
+
+**Example**:
+```bash
+python scripts/build-script-generator.py use-cases/file_based_energy_pipeline
+```
+
+### onboarding-export-generator.py
+
+Creates AI-Effect platform export packages from service definitions.
+
+**Usage**:
+```bash
+python scripts/onboarding-export-generator.py <use_case_dir> <output_dir> [--overwrite]
+```
+
+**Arguments**:
+- `use_case_dir`: Source directory containing services/
+- `output_dir`: Target directory for export package
+- `--overwrite`: Replace existing output directory
+
+**Process**:
+1. Scans services/ for proto definitions
+2. Parses proto files to extract RPC interfaces
+3. Reads connections.json for pipeline topology
+4. Generates blueprint.json with AI-Effect format
+5. Generates dockerinfo.json with network configuration
+6. Creates generation_metadata.json for tracking
+7. Copies proto files to microservice/ directory
+
+**Example**:
+```bash
+python scripts/onboarding-export-generator.py \
+  use-cases/file_based_energy_pipeline \
+  use-cases-platform/my-export \
+  --overwrite
+```
+
+### docker-compose-generator.py
+
+Generates docker-compose.yml from platform export packages.
+
+**Usage**:
+```bash
+python scripts/docker-compose-generator.py <export_dir> [--base-port PORT] [--orchestrator-path PATH]
+```
+
+**Arguments**:
+- `export_dir`: Path to platform export directory
+- `--base-port`: Starting external port (default: 50051)
+- `--orchestrator-path`: Path to orchestrator directory (enables orchestrator integration)
+
+**Process**:
+1. Reads blueprint.json for service topology
+2. Reads dockerinfo.json for network configuration
+3. Generates docker-compose.yml with:
+   - Service definitions with proper networking
+   - Auto-assigned external ports
+   - Shared data volumes
+   - Dependency ordering
+   - Orchestrator integration (if specified)
+
+**Example**:
+```bash
+python scripts/docker-compose-generator.py \
+  use-cases-platform/file_based_energy_pipeline \
+  --orchestrator-path orchestrator
+```
+
+## Configuration Files
+
+### connections.json
+
+Defines pipeline topology and service relationships.
+
+**Format**:
 ```json
 {
   "pipeline": {
     "name": "Pipeline Name",
+    "description": "Pipeline description",
     "start_service": "first_service",
     "connections": [
       {
         "from_service": "service1",
         "from_method": "MethodName",
-        "to_service": "service2", 
+        "to_service": "service2",
         "to_method": "MethodName"
       }
     ]
@@ -93,191 +261,242 @@ python orchestrator/scripts/onboarding-export-generator.py use-cases/file_based_
 }
 ```
 
-### 2. Docker Compose Generator
+**Fields**:
+- `name`: Pipeline identifier
+- `description`: Pipeline description
+- `start_service`: Entry point service
+- `connections`: Array of service connections
+  - `from_service`: Source service directory name
+  - `from_method`: Source RPC method name
+  - `to_service`: Target service directory name
+  - `to_method`: Target RPC method name
 
-Converts an AI-Effect onboarding export into a docker-compose.yml for deployment.
+### blueprint.json
 
-**Location**: `orchestrator/scripts/docker-compose-generator.py`
+AI-Effect platform format for pipeline topology.
 
-**Usage**:
-```bash
-python orchestrator/scripts/docker-compose-generator.py orchestrator/use-cases-platform/example-1
-```
+**Generated fields**:
+- `nodes`: Service definitions with container names and images
+- `operation_signature_list`: RPC methods and connections
+- `pipeline_id`: Unique identifier
+- `name`: Pipeline name
+- `version`: Format version
 
-**What it does**:
-- Reads `blueprint.json` for service topology and connections
-- Reads `dockerinfo.json` for Docker image mappings
-- Reads `generation_metadata.json` for service and path information
-- Generates complete docker-compose.yml with:
-  - Service definitions with auto-assigned ports starting from 50051
-  - Network configuration (ai-effect-pipeline)
-  - Shared volumes for data exchange
-  - Service dependencies based on blueprint connections
-  - Environment variables for gRPC configuration
-- Creates `build_and_tag.sh` script for building required Docker images (when metadata is available)
+### dockerinfo.json
 
-**Output**: `docker-compose.yml` in the onboarding export directory, plus `build_and_tag.sh` for local development
+Network configuration for orchestrator.
 
-## Example Services
-
-The project includes three example services for energy data processing:
-
-1. **Data Generator**: Generates synthetic energy consumption data
-2. **Data Analyzer**: Analyzes data for anomalies and calculates efficiency
-3. **Report Generator**: Creates summary reports from analyzed data
-
-Each service:
-- Has its own protobuf definition in `proto/` subdirectory
-- Implements gRPC service interface
-- Can be built as a Docker container
-- Follows AI-Effect service patterns
-
-## Workflows
-
-### 1. Development Workflow
-
-Work directly with services for development and testing:
-
-```bash
-# Start services for development
-cd use-cases/file_based_energy_pipeline
-docker compose up --build
-
-# Services will be available on auto-assigned ports
-```
-
-### 2. Production Deployment Workflow
-
-Generate deployment configurations from service definitions:
-
-```bash
-# Step 1: Generate onboarding export from services
-python orchestrator/scripts/onboarding-export-generator.py \
-  use-cases/file_based_energy_pipeline \
-  orchestrator/use-cases-platform/my-pipeline
-
-# Step 2: Generate docker-compose.yml from export
-python orchestrator/scripts/docker-compose-generator.py \
-  orchestrator/use-cases-platform/my-pipeline
-
-# Step 3: Build required images
-cd orchestrator/use-cases-platform/my-pipeline
-./build_and_tag.sh
-
-# Step 4: Deploy anywhere
-docker compose up -d
-```
-
-### 3. Using Platform Downloads
-
-Deploy onboarding exports downloaded from AI-Effect platform:
-
-```bash
-# Generate deployment config from platform export
-python orchestrator/scripts/docker-compose-generator.py path/to/downloaded/export
-
-# Deploy the services (images should be available in registries)
-cd path/to/downloaded/export
-docker compose up -d
-```
-
-**Note**: Platform downloads don't include build scripts since images are expected to be available in registries.
-
-## Service Connection Configuration
-
-Define service connections in `connections.json` within your use case directory:
-
+**Format**:
 ```json
 {
-  "pipeline": {
-    "name": "Energy Data Processing Pipeline",
-    "description": "Sequential processing of energy data through generation, analysis, and reporting",
-    "start_service": "data_generator",
-    "connections": [
-      {
-        "from_service": "data_generator",
-        "from_method": "GenerateData",
-        "to_service": "data_analyzer",
-        "to_method": "AnalyzeData"
-      },
-      {
-        "from_service": "data_analyzer", 
-        "from_method": "AnalyzeData",
-        "to_service": "report_generator",
-        "to_method": "GenerateReport"
-      }
-    ]
-  }
+  "docker_info_list": [
+    {
+      "container_name": "service1",
+      "ip_address": "service1",
+      "port": "50051"
+    }
+  ]
 }
 ```
 
-**Connection Format**:
-- `from_service`: Name of source service directory
-- `from_method`: RPC method name from source service proto
-- `to_service`: Name of target service directory  
-- `to_method`: RPC method name from target service proto
+**Fields**:
+- `container_name`: Docker container name
+- `ip_address`: Service hostname (container name for Docker DNS)
+- `port`: Internal gRPC port (50051 for all services)
 
-## Script Details
+## Workflows
 
-### onboarding-export-generator.py
+### Development Workflow
 
-**Arguments**:
-- `use_case_dir`: Path to use case directory (e.g., `use-cases/file_based_energy_pipeline`)
-- `output_dir`: Path to output directory in platform (e.g., `orchestrator/use-cases-platform/example-1`)
-- `--overwrite`: Overwrite existing output directory
+For local service development and testing:
 
-**Process**:
-1. Scans `services/` directory for subdirectories with `proto/` folders
-2. Parses each proto file to extract service names and RPC methods
-3. Loads `connections.json` to understand pipeline topology
-4. Creates AI-Effect compatible `blueprint.json` with proper service connections
-5. Creates `dockerinfo.json` mapping containers to Docker images
-6. Creates `generation_metadata.json` with service and path metadata
-7. Copies proto files to `microservice/` with AI-Effect naming (adds '1' suffix)
+```bash
+cd use-cases/file_based_energy_pipeline
+docker compose up --build
+```
 
-### docker-compose-generator.py
+Services run independently without orchestrator. Useful for:
+- Service development
+- Interface testing
+- Debugging individual components
 
-**Arguments**:
-- `onboarding_dir`: Path to AI-Effect onboarding export directory
+### Platform Export Workflow
 
-**Process**:
-1. Reads `blueprint.json` to extract service definitions and connections
-2. Reads `dockerinfo.json` to get Docker image mappings
-3. Reads `generation_metadata.json` to get service and path information
-4. Generates docker-compose.yml with:
-   - Services with standardized internal ports (50051)
-   - External ports auto-assigned starting from 50051
-   - AI-Effect pipeline network
-   - Shared data volumes
-   - Proper service dependencies
-   - Environment variables for gRPC port configuration
-5. Creates `build_and_tag.sh` script for building images from source
+Complete workflow from development to deployment:
 
-## Key Features
+```bash
+# 1. Generate build script
+python scripts/build-script-generator.py use-cases/file_based_energy_pipeline
 
-- **Service Isolation**: Each service has its own proto file and implementation
-- **Flexible Topology**: Define any pipeline structure via connections.json
-- **Container Ready**: All services built as Docker containers
-- **AI-Effect Compatible**: Generates standard AI-Effect onboarding exports
-- **Deployment Agnostic**: Generated docker-compose.yml works anywhere
-- **Development Friendly**: Separate development and production configurations
-- **Platform Integration**: Exports can be used with AI-Effect platform orchestrators
+# 2. Build images
+cd use-cases/file_based_energy_pipeline
+./build_and_tag.sh
+cd ../..
+
+# 3. Create export package
+python scripts/onboarding-export-generator.py \
+  use-cases/file_based_energy_pipeline \
+  use-cases-platform/file_based_energy_pipeline \
+  --overwrite
+
+# 4. Generate deployment config
+python scripts/docker-compose-generator.py \
+  use-cases-platform/file_based_energy_pipeline \
+  --orchestrator-path orchestrator
+
+# 5. Deploy and execute
+cd use-cases-platform/file_based_energy_pipeline
+docker compose up --build
+
+# 6. View results
+docker compose logs orchestrator
+
+# 7. Clean up
+docker compose down
+```
+
+### Platform Download Workflow
+
+Deploy packages downloaded from AI-Effect platform:
+
+```bash
+# Generate deployment configuration
+python scripts/docker-compose-generator.py \
+  path/to/downloaded/export \
+  --orchestrator-path orchestrator
+
+# Deploy
+cd path/to/downloaded/export
+docker compose up --build
+```
+
+## Example Pipeline
+
+The included file_based_energy_pipeline demonstrates:
+
+### Services
+
+1. **data_generator**: Generates synthetic energy consumption data
+   - Input: Number of records, output format
+   - Output: CSV file with timestamp, energy, efficiency data
+
+2. **data_analyzer**: Analyzes energy data for anomalies
+   - Input: Data file path, anomaly threshold
+   - Output: Analyzed data with anomaly flags
+
+3. **report_generator**: Creates summary reports
+   - Input: Analyzed data file, report format
+   - Output: Summary statistics and report file
+
+### Pipeline Flow
+
+```
+data_generator (GenerateData)
+    |
+    v
+data_analyzer (AnalyzeData)
+    |
+    v
+report_generator (GenerateReport)
+```
+
+### Execution
+
+The orchestrator:
+1. Identifies data_generator as start node (no dependencies)
+2. Executes GenerateData with initial parameters
+3. Passes output to data_analyzer as input
+4. Executes AnalyzeData
+5. Passes output to report_generator
+6. Executes GenerateReport
+7. Outputs final results
+
+## Technical Details
+
+### Port Configuration
+
+- Internal ports: All services listen on 50051 (configured via GRPC_PORT environment variable)
+- External ports: Auto-assigned starting from 50051 in docker-compose.yml
+- Orchestrator uses internal ports for service communication
+- Host access uses external port mapping
+
+### Docker Networking
+
+- Network: ai-effect-pipeline (bridge driver)
+- Service discovery: Docker DNS resolves container names
+- Orchestrator runs inside network for service access
+- Volume mount: Export directory mounted to /export in orchestrator
+
+### Orchestrator Operation
+
+1. Mounts export directory as read-only volume
+2. Parses blueprint.json for workflow definition
+3. Reads dockerinfo.json for service addresses
+4. Compiles proto files dynamically using grpc_tools.protoc
+5. Builds execution graph with dependency resolution
+6. Determines execution order by levels
+7. Executes nodes level-by-level with parallel processing within levels
+8. Passes outputs as inputs to dependent nodes
+9. Outputs results and exits
+
+### Data Flow
+
+Services communicate via:
+- gRPC for method invocation and response
+- Shared volume for file-based data exchange
+- JSON-serializable message types
 
 ## Dependencies
 
+### Framework Tools
+
 ```bash
-pip install PyYAML  # For docker-compose generation
+pip install PyYAML
 ```
 
-All other dependencies are handled per-service via requirements.txt files.
+### Orchestrator
+
+```bash
+pip install grpcio grpcio-tools protobuf
+```
+
+### Services
+
+Each service has requirements.txt specifying:
+- grpcio
+- grpcio-tools
+- protobuf
+- Service-specific dependencies (pandas, numpy, etc.)
+
+## Platform Compatibility
+
+### AI-Effect Platform Format
+
+Generated exports conform to AI-Effect platform specifications:
+- Blueprint format version 2.0
+- Standard dockerinfo structure
+- Protobuf definitions in microservice/ directory
+- Container naming with numeric suffixes
+
+### Deployment Portability
+
+Generated docker-compose.yml files:
+- Use relative paths for portability
+- Work on any host with Docker
+- Support both local and remote images
+- Include orchestrator for automated execution
 
 ## Notes
 
-- Services use insecure gRPC channels (suitable for development/internal networks)
-- All services use standardized internal port 50051 with environment variable configuration
-- External ports are auto-assigned starting from 50051 in generated docker-compose.yml
-- Services read `GRPC_PORT` environment variable to configure their listening port
-- Build scripts are generated only for local development (when source metadata is available)
-- Platform downloads use registry images and don't require build scripts
-- Data directory is shared between services via Docker volumes
-- The `use-cases-platform/` directory mimics what would be downloaded from the AI-Effect platform
+- Services use insecure gRPC channels (suitable for internal networks)
+- All services standardized on internal port 50051
+- External port mapping prevents conflicts
+- Export packages contain no source code (platform simulation)
+- Images must be built before export generation
+- Orchestrator compiles proto files at runtime
+- Shared data volume enables file-based communication
+- Container names used for Docker DNS resolution
+
+## License
+
+This framework is developed for AI-Effect consortium partners and follows project licensing agreements.

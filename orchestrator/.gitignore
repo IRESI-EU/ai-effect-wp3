@@ -169,8 +169,8 @@ temp_*
 # Temporary proto compilation directories
 temp_proto_*/
 
-# Generated docker-compose files
-use-cases-platform/*/docker-compose.yml
+# Generated docker-compose files (moved to project root)
+# use-cases-platform/*/docker-compose.yml
 
 # IDE files
 .vscode/

@@ -220,19 +220,24 @@ class OnboardingExportGenerator:
         
         return blueprint
     
-    def generate_dockerinfo(self, services):
-        """Generate dockerinfo.json"""
-        docker_image_list = []
+    def generate_dockerinfo(self, services, internal_port=50051):
+        """Generate dockerinfo.json in platform format
+
+        Note: Uses internal service port (all services listen on same internal port)
+        External port mapping is handled by docker-compose.yml
+        """
+        docker_info_list = []
 
         for service in services:
             docker_info = {
                 "container_name": service['container_name'],
-                "image_name": f"{self.use_case_dir.name}-{service['name'].replace('_', '-')}:latest"
+                "ip_address": service['container_name'],  # Service name for Docker DNS
+                "port": str(internal_port)  # Internal service port (all use same port)
             }
-            docker_image_list.append(docker_info)
+            docker_info_list.append(docker_info)
 
         dockerinfo = {
-            "docker_image_list": docker_image_list
+            "docker_info_list": docker_info_list
         }
 
         return dockerinfo
@@ -253,7 +258,7 @@ class OnboardingExportGenerator:
         metadata = {
             "use_case_name": self.use_case_dir.name,
             "use_case_directory": self.use_case_dir.name,
-            "source_path": f"../../../use-cases/{self.use_case_dir.name}",
+            "source_path": f"../../use-cases/{self.use_case_dir.name}",
             "services": []
         }
 

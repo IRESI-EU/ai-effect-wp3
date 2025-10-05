@@ -47,38 +47,27 @@ class DockerinfoService:
             raise RuntimeError(f"Failed to load dockerinfo: {e}")
     
     def _parse_dockerinfo_data(self, data: Dict[str, Any], blueprint_nodes: list, base_port: int) -> Dict[str, Dict[str, Any]]:
-        """Parse dockerinfo data into network configuration."""
-        if 'docker_image_list' not in data:
-            raise ValueError("Missing 'docker_image_list' in dockerinfo.json")
-        
-        # Create container name to port mapping based on blueprint order
-        container_port_map = {}
-        current_port = base_port
-        for node in blueprint_nodes:
-            container_name = node.container_name
-            container_port_map[container_name] = current_port
-            current_port += 1
-        
+        """Parse dockerinfo data into network configuration (platform format only)."""
+        if 'docker_info_list' not in data:
+            raise ValueError("Missing 'docker_info_list' in dockerinfo.json")
+
         container_configs = {}
-        
-        for item in data['docker_image_list']:
+
+        for item in data['docker_info_list']:
             if 'container_name' not in item:
-                raise ValueError("Missing 'container_name' in docker_image_list item")
-            
+                raise ValueError("Missing 'container_name' in docker_info_list item")
+
             container_name = item['container_name']
-            
-            if container_name not in container_port_map:
-                raise ValueError(f"Container '{container_name}' from dockerinfo.json not found in blueprint nodes")
-            
-            # Create network configuration with assigned port
+            ip_address = item.get('ip_address', 'localhost')
+            port = int(item.get('port', 50051))
+
             network_config = {
-                'address': 'localhost',
-                'port': container_port_map[container_name]
+                'address': ip_address,
+                'port': port
             }
-            
+
             container_configs[container_name] = network_config
-            
             self.logger.debug(f"Configured {container_name}: {network_config}")
-        
+
         return container_configs
     
