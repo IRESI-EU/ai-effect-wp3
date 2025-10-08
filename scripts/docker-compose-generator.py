@@ -17,7 +17,7 @@ class DockerComposeGenerator:
         self.base_port = base_port
         self.services = {}
         self.networks = {"ai-effect-pipeline": {"driver": "bridge"}}
-        self.volumes = {"shared-data": None}
+        self.volumes = {}
     
     def load_blueprint(self, blueprint_file):
         """Load blueprint.json and extract service information"""
@@ -68,7 +68,7 @@ class DockerComposeGenerator:
             'container_name': container_name,
             'ports': [f"{external_port}:{internal_port}"],
             'networks': ['ai-effect-pipeline'],
-            'volumes': ['shared-data:/app/data'],
+            'volumes': ['./data:/app/data'],
             'environment': {
                 'GRPC_PORT': str(internal_port),
                 'SERVICE_NAME': container_name
@@ -107,12 +107,13 @@ class DockerComposeGenerator:
         orchestrator_service = {
             'build': relative_path,
             'container_name': 'orchestrator',
-            'command': ['/export'],
+            'entrypoint': ['/bin/sh'],
+            'command': ['-c', 'sleep 5 && python orchestrator.py /export'],
             'volumes': [
                 '.:/export:ro'  # Mount current directory (export dir) as read-only
             ],
             'networks': ['ai-effect-pipeline'],
-            'depends_on': list(all_services.keys()),  # Wait for all services
+            'depends_on': list(all_services.keys()),  # Wait for all services to start
             'restart': 'no'  # Run once and exit
         }
 
@@ -138,10 +139,6 @@ class DockerComposeGenerator:
 
             service = self.generate_compose_service(node, external_port)
             if service:
-                # Add dependencies
-                if container_name in dependencies:
-                    service['depends_on'] = dependencies[container_name]
-
                 self.services[container_name] = service
                 external_port += 1
 
@@ -156,17 +153,25 @@ class DockerComposeGenerator:
         # Create complete docker-compose structure
         compose_config = {
             'services': self.services,
-            'networks': self.networks,
-            'volumes': self.volumes
+            'networks': self.networks
         }
+
+        # Only add volumes section if there are any
+        if self.volumes:
+            compose_config['volumes'] = self.volumes
 
         # Write docker-compose.yml
         with open(output_file, 'w') as f:
             yaml.dump(compose_config, f, default_flow_style=False, indent=2)
 
+        # Create data directory for bind mount
+        data_dir = Path(output_file).parent / 'data'
+        data_dir.mkdir(exist_ok=True)
+
         service_count = len(self.services) - (1 if orchestrator_path else 0)
         print(f"Generated docker-compose.yml with {service_count} services" +
               (" + orchestrator" if orchestrator_path else ""))
+        print(f"Created data directory: {data_dir}")
         print("Note: Images must be built before deployment (use build_and_tag.sh in use-cases/)")
         return compose_config
 
