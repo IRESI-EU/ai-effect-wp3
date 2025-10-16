@@ -23,13 +23,13 @@ class ReportGeneratorService(report_generator_pb2_grpc.ReportGeneratorServiceSer
     
     def GenerateReport(self, request, context):
         """Generate summary report from analyzed data"""
-        logger.info(f"GenerateReport called: input={request.analyzed_data_path}, format={request.report_format}")
-        
+        logger.info(f"GenerateReport called: input={request.output_file_path}, format={request.report_format}")
+
         try:
             # Read analyzed data
-            input_path = Path(request.analyzed_data_path)
+            input_path = Path(request.output_file_path)
             if not input_path.exists():
-                raise FileNotFoundError(f"Input file not found: {request.analyzed_data_path}")
+                raise FileNotFoundError(f"Input file not found: {request.output_file_path}")
             
             df = pd.read_csv(input_path)
             

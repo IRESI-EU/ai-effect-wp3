@@ -50,7 +50,8 @@ class DataGeneratorService(data_generator_pb2_grpc.DataGeneratorServiceServicer)
             response.success = True
             response.message = message
             response.records_generated = len(data['timestamp'])
-            
+            response.output_file_path = str(output_path)
+
             return response
             
         except Exception as e:

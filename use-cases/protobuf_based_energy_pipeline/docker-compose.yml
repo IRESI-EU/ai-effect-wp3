@@ -1,4 +1,16 @@
 services:
+  input_provider:
+    build:
+      context: .
+      dockerfile: services/input_provider/Dockerfile
+    container_name: protobuf_input_provider
+    environment:
+      - GRPC_PORT=50051
+    ports:
+      - "50050:50051"
+    networks:
+      - energy_pipeline_net
+
   data_generator:
     build:
       context: .
@@ -10,6 +22,8 @@ services:
       - "50051:50051"
     networks:
       - energy_pipeline_net
+    depends_on:
+      - input_provider
 
   data_analyzer:
     build:

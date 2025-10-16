@@ -23,13 +23,13 @@ class DataAnalyzerService(data_analyzer_pb2_grpc.DataAnalyzerServiceServicer):
     
     def AnalyzeData(self, request, context):
         """Analyze energy data for anomalies and efficiency"""
-        logger.info(f"AnalyzeData called: input={request.input_file_path}, threshold={request.anomaly_threshold}")
-        
+        logger.info(f"AnalyzeData called: input={request.output_file_path}, threshold={request.anomaly_threshold}")
+
         try:
             # Read input CSV file
-            input_path = Path(request.input_file_path)
+            input_path = Path(request.output_file_path)
             if not input_path.exists():
-                raise FileNotFoundError(f"Input file not found: {request.input_file_path}")
+                raise FileNotFoundError(f"Input file not found: {request.output_file_path}")
             
             df = pd.read_csv(input_path)
             
@@ -82,7 +82,8 @@ class DataAnalyzerService(data_analyzer_pb2_grpc.DataAnalyzerServiceServicer):
             response.total_records = len(analyzed_data)
             response.anomalies_detected = anomaly_count
             response.average_efficiency = avg_efficiency
-            
+            response.output_file_path = str(output_path)
+
             return response
             
         except Exception as e:

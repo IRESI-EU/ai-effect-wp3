@@ -2,18 +2,24 @@
   "pipeline": {
     "name": "Energy Data Processing Pipeline",
     "description": "Sequential processing of energy data through generation, analysis, and reporting",
-    "start_service": "data_generator",
+    "start_service": "input-provider",
     "connections": [
       {
-        "from_service": "data_generator",
+        "from_service": "input-provider",
+        "from_method": "GetConfiguration",
+        "to_service": "data-generator",
+        "to_method": "GenerateData"
+      },
+      {
+        "from_service": "data-generator",
         "from_method": "GenerateData",
-        "to_service": "data_analyzer", 
+        "to_service": "data-analyzer",
         "to_method": "AnalyzeData"
       },
       {
-        "from_service": "data_analyzer",
-        "from_method": "AnalyzeData", 
-        "to_service": "report_generator",
+        "from_service": "data-analyzer",
+        "from_method": "AnalyzeData",
+        "to_service": "report-generator",
         "to_method": "GenerateReport"
       }
     ]

@@ -34,39 +34,50 @@ class GrpcService:
         """Compile proto file and return pb2 and pb2_grpc modules."""
         if not proto_path:
             raise ValueError("proto_path is required")
-        
+
         if not use_case_dir:
             raise ValueError("use_case_dir is required")
-        
+
         # Check if already compiled
         if proto_path in self._compiled_modules:
             self.logger.debug(f"Using cached compiled proto: {proto_path}")
             return self._compiled_modules[proto_path]
-        
+
         full_proto_path = Path(use_case_dir) / proto_path
         if not full_proto_path.exists():
             raise FileNotFoundError(f"Proto file not found: {full_proto_path}")
-        
+
         self.logger.info(f"Compiling proto file: {full_proto_path}")
-        
+
         # Create temporary directory for compiled modules
         temp_dir = tempfile.mkdtemp(prefix="orchestrator_proto_")
         self._temp_dirs.append(temp_dir)
-        
+
         try:
-            # Compile proto file
-            self._compile_proto_file(str(full_proto_path), temp_dir)
-            
-            # Load compiled modules
+            # Compile all proto files in the directory first (to handle dependencies like common.proto)
+            proto_dir = full_proto_path.parent
+            for proto_file in proto_dir.glob('*.proto'):
+                self._compile_proto_file(str(proto_file), temp_dir)
+
+            # Load ALL pb2 modules into sys.modules first (to handle imports between protos)
+            for pb2_file in Path(temp_dir).glob('*_pb2.py'):
+                module_name = pb2_file.stem  # e.g., "common_pb2"
+                spec = importlib.util.spec_from_file_location(module_name, str(pb2_file))
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
+                self.logger.debug(f"Loaded {module_name} into sys.modules")
+
+            # Now load compiled modules for the requested proto (pb2_grpc can import pb2 modules)
             pb2_module, pb2_grpc_module = self._load_compiled_modules(
                 full_proto_path.name, temp_dir
             )
-            
+
             # Cache the modules
             self._compiled_modules[proto_path] = (pb2_module, pb2_grpc_module)
-            
+
             return pb2_module, pb2_grpc_module
-            
+
         except Exception as e:
             self.logger.error(f"Failed to compile proto {proto_path}: {e}")
             raise RuntimeError(f"Proto compilation failed: {e}")
@@ -172,23 +183,23 @@ class GrpcService:
         """Find service stub that contains the specified operation."""
         # Look for service stub classes in the module
         for attr_name in dir(pb2_grpc_module):
-            if attr_name.endswith('Stub') and 'Service' in attr_name:
+            if attr_name.endswith('Stub') and not attr_name.startswith('_'):
                 # Check if this service has the operation method
                 service_class = getattr(pb2_grpc_module, attr_name)
-                
+
                 # Create temporary stub to check methods
                 try:
                     temp_channel = grpc.insecure_channel('localhost:0')
                     temp_stub = service_class(temp_channel)
-                    
+
                     if hasattr(temp_stub, operation_name):
                         temp_channel.close()
                         return attr_name
-                    
+
                     temp_channel.close()
                 except:
                     continue
-        
+
         # If no service stub contains the operation, this is an error
         available_stubs = [attr for attr in dir(pb2_grpc_module) if attr.endswith('Stub')]
         raise RuntimeError(f"No service stub found containing operation '{operation_name}'. Available stubs: {available_stubs}")
@@ -206,7 +217,21 @@ class GrpcService:
         # Populate request with data
         for field_name, field_value in request_data.items():
             if hasattr(request, field_name):
-                setattr(request, field_name, field_value)
+                field = getattr(request, field_name)
+
+                # Check if this is a repeated field
+                # Target field must have extend(), and value must be iterable (but not string/bytes)
+                field_has_extend = hasattr(field, 'extend')
+                value_has_len = hasattr(field_value, '__len__')
+                is_str_bytes = isinstance(field_value, (str, bytes))
+
+                # Repeated fields: check if value has length and isn't a string/bytes
+                if field_has_extend and value_has_len and not is_str_bytes:
+                    # Repeated field: use extend() to copy elements
+                    field.extend(field_value)
+                else:
+                    # Regular field: use setattr
+                    setattr(request, field_name, field_value)
             else:
                 self.logger.warning(f"Field {field_name} not found in {operation.input_message_name}")
         

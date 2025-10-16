@@ -14,6 +14,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 import uuid
+import yaml
 
 
 class OnboardingExportGenerator:
@@ -22,13 +23,49 @@ class OnboardingExportGenerator:
         self.output_dir = Path(output_dir)
         self.services_dir = self.use_case_dir / 'services'
         
+    def load_docker_compose_service_names(self):
+        """Load service names from docker-compose.yml to match Docker's image naming"""
+        compose_file = self.use_case_dir / 'docker-compose.yml'
+
+        if not compose_file.exists():
+            print(f"Warning: No docker-compose.yml found, using directory names for services")
+            return {}
+
+        try:
+            with open(compose_file, 'r') as f:
+                compose_config = yaml.safe_load(f)
+
+            # Get service names from docker-compose.yml
+            # Map: dockerfile path -> service name
+            service_mapping = {}
+            if 'services' in compose_config:
+                for service_name, service_config in compose_config['services'].items():
+                    if 'build' in service_config:
+                        # Extract dockerfile path to determine which service this is
+                        build_config = service_config['build']
+                        if isinstance(build_config, dict) and 'dockerfile' in build_config:
+                            dockerfile = build_config['dockerfile']
+                            # Extract service directory name from dockerfile path
+                            # e.g., "services/data_generator/Dockerfile" -> "data_generator"
+                            if 'services/' in dockerfile:
+                                dir_name = dockerfile.split('services/')[1].split('/')[0]
+                                service_mapping[dir_name] = service_name
+
+            return service_mapping
+        except Exception as e:
+            print(f"Warning: Failed to parse docker-compose.yml: {e}")
+            return {}
+
     def scan_services(self):
         """Scan services directory and extract service information"""
         services = []
-        
+
         if not self.services_dir.exists():
             raise FileNotFoundError(f"Services directory not found: {self.services_dir}")
-        
+
+        # Load service name mappings from docker-compose.yml
+        compose_service_names = self.load_docker_compose_service_names()
+
         for service_dir in self.services_dir.iterdir():
             if service_dir.is_dir():
                 proto_dir = service_dir / 'proto'
@@ -36,9 +73,12 @@ class OnboardingExportGenerator:
                     # Find proto file
                     proto_files = list(proto_dir.glob('*.proto'))
                     if proto_files:
+                        # Use service name from docker-compose.yml if available, otherwise use directory name
+                        service_name = compose_service_names.get(service_dir.name, service_dir.name)
+
                         service_info = {
-                            'name': service_dir.name,
-                            'container_name': f"{service_dir.name}1",  # Add '1' suffix like AI-Effect
+                            'name': service_name,
+                            'container_name': f"{service_dir.name}1",  # Container name still uses directory name
                             'proto_file': proto_files[0],
                             'service_dir': service_dir
                         }
@@ -48,7 +88,7 @@ class OnboardingExportGenerator:
                         print(f"Warning: No proto file found in {proto_dir}")
                 else:
                     print(f"Warning: No proto directory found in {service_dir}")
-        
+
         return services
     
     def parse_proto_file(self, proto_file):
@@ -117,7 +157,7 @@ class OnboardingExportGenerator:
         # Generate node
         node = {
             "proto_uri": f"microservice/{service['container_name']}.proto",
-            "image": f"{self.use_case_dir.name}-{service['name'].replace('_', '-')}:latest",
+            "image": f"{self.use_case_dir.name}-{service['name']}:latest",
             "node_type": "MLModel",
             "container_name": service['container_name'],
             "operation_signature_list": operation_signatures
@@ -168,36 +208,40 @@ class OnboardingExportGenerator:
         return connections_config.get('pipeline', {}).get('connections', [])
     
     def create_service_connections(self, services):
-        """Create service connections from connections.json"""
+        """Create service connections from connections.json
+
+        Note: Service names in connections.json must match service names in docker-compose.yml
+        """
         connections_config = self.load_connections()
         connections = {}
-        
+
         # Create service name to container name mapping
         service_map = {svc['name']: svc['container_name'] for svc in services}
-        
+
         for conn in connections_config:
             from_service = conn['from_service']
             to_service = conn['to_service']
             to_method = conn['to_method']
-            
+
             if from_service in service_map and to_service in service_map:
                 from_container = service_map[from_service]
                 to_container = service_map[to_service]
-                
+
                 if from_container not in connections:
                     connections[from_container] = []
-                
+
                 connections[from_container].append({
                     "container_name": to_container,
                     "operation_signature": {
                         "operation_name": to_method
                     }
                 })
-                
+
                 print(f"Connection: {from_service} -> {to_service} ({to_method})")
             else:
                 print(f"Warning: Connection references unknown services: {from_service} -> {to_service}")
-        
+                print(f"  Available services: {list(service_map.keys())}")
+
         return connections
     
     def generate_blueprint(self, services):
@@ -266,7 +310,7 @@ class OnboardingExportGenerator:
             service_metadata = {
                 "service_name": service['name'],
                 "container_name": service['container_name'],
-                "image_name": f"{self.use_case_dir.name}-{service['name'].replace('_', '-')}:latest"
+                "image_name": f"{self.use_case_dir.name}-{service['name']}:latest"
             }
             metadata["services"].append(service_metadata)
 

@@ -264,12 +264,14 @@ Defines pipeline topology and service relationships.
 **Fields**:
 - `name`: Pipeline identifier
 - `description`: Pipeline description
-- `start_service`: Entry point service
+- `start_service`: Entry point service (must match docker-compose.yml service name)
 - `connections`: Array of service connections
-  - `from_service`: Source service directory name
+  - `from_service`: Source service name (must match docker-compose.yml service name)
   - `from_method`: Source RPC method name
-  - `to_service`: Target service directory name
+  - `to_service`: Target service name (must match docker-compose.yml service name)
   - `to_method`: Target RPC method name
+
+**Important**: Service names in connections.json MUST match the service names defined in docker-compose.yml, NOT the directory names. For example, if docker-compose.yml defines `data-generator:` (with hyphen), connections.json must use `"from_service": "data-generator"` (with hyphen), even if the directory is named `data_generator/` (with underscore).
 
 ### blueprint.json
 

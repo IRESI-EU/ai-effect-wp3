@@ -1,6 +1,15 @@
 services:
+  input-provider:
+    build:
+      context: .
+      dockerfile: services/input_provider/Dockerfile
+    ports:
+      - "50050:50051"
+    networks:
+      - energy-pipeline
+
   data-generator:
-    build: 
+    build:
       context: .
       dockerfile: services/data_generator/Dockerfile
     ports:
@@ -9,6 +18,8 @@ services:
       - ./data:/app/data
     networks:
       - energy-pipeline
+    depends_on:
+      - input-provider
 
   data-analyzer:
     build:
