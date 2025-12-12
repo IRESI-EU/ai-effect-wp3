@@ -81,8 +81,17 @@ The orchestrator is a containerized service that:
 ### Prerequisites
 
 - Docker and Docker Compose
+- Docker Buildx (for running tests)
 - Python 3.11+
 - PyYAML library: `pip install PyYAML`
+
+#### Installing Docker Buildx
+
+```bash
+mkdir -p ~/.docker/cli-plugins
+curl -SL https://github.com/docker/buildx/releases/download/v0.14.0/buildx-v0.14.0.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
+chmod +x ~/.docker/cli-plugins/docker-buildx
+```
 
 ### Step 1: Generate Build Script
 

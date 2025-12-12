@@ -7,8 +7,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ ./src/
 COPY tests/ ./tests/
+COPY pyproject.toml .
 
 ENV PYTHONPATH=/app/src
 
 ENTRYPOINT ["python", "-m", "pytest"]
-CMD ["tests/", "-v"]
+CMD ["tests/", "-v", "--cov=src"]

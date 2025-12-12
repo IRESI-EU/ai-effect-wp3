@@ -4,4 +4,4 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-./run-tests.sh tests/unit/ -v "$@"
+./run-tests.sh tests/unit/ -v --cov=src "$@"
