@@ -115,6 +115,13 @@ def create_test_app() -> FastAPI:
         _tasks.clear()
         return {"status": "ok"}
 
+    @app.get("/tasks/{task_id}")
+    def get_task_info(task_id: str) -> dict:
+        """Get task info for testing verification."""
+        if task_id not in _tasks:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return _tasks[task_id]
+
     return app
 
 

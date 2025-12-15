@@ -21,6 +21,7 @@ from services.state_store import (
     WorkflowNotFoundError,
 )
 from services.task_queue import RedisTaskQueue
+from services.worker import Worker, WorkerError
 from services.workflow_engine import WorkflowEngine
 
 __all__ = [
@@ -39,6 +40,8 @@ __all__ = [
     "ServiceEndpoint",
     "StatusResponse",
     "TaskNotFoundError",
+    "Worker",
+    "WorkerError",
     "WorkflowEngine",
     "WorkflowNotFoundError",
 ]
