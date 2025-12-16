@@ -12,13 +12,14 @@ class TestProtocolEnum:
     """Tests for Protocol enum."""
 
     def test_all_protocols_defined(self):
-        expected = {"s3", "http", "https", "nfs", "grpc", "mqtt", "villas", "inline"}
+        expected = {"s3", "http", "https", "nfs", "grpc", "mqtt", "villas", "inline", "file"}
         actual = {p.value for p in Protocol}
         assert actual == expected
 
     def test_protocol_from_string(self):
         assert Protocol("s3") == Protocol.S3
         assert Protocol("http") == Protocol.HTTP
+        assert Protocol("file") == Protocol.FILE
 
     def test_invalid_protocol_raises(self):
         with pytest.raises(ValueError):

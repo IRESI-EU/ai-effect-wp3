@@ -1,4 +1,4 @@
-grpcio==1.60.0
-grpcio-tools==1.60.0
-pandas==2.1.4
-protobuf>=4.25.8
+fastapi>=0.109.0
+uvicorn>=0.27.0
+pydantic>=2.0.0
+pandas>=2.0.0

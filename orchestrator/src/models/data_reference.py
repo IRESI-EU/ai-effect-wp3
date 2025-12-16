@@ -18,6 +18,7 @@ class Protocol(str, Enum):
     MQTT = "mqtt"
     VILLAS = "villas"
     INLINE = "inline"
+    FILE = "file"  # local file path
 
 
 class Format(str, Enum):

@@ -5,16 +5,9 @@ WORKDIR /app
 COPY services/report_generator/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY services/report_generator/server.py .
-COPY services/report_generator/proto ./proto
+COPY services/report_generator/handler.py .
+COPY services/report_generator/service.py .
 
-# Generate protobuf files
-RUN python -m grpc_tools.protoc \
-    --python_out=. \
-    --grpc_python_out=. \
-    -I./proto \
-    proto/report_generator.proto
+EXPOSE 8080
 
-EXPOSE 50053
-
-CMD ["python", "server.py"]
+CMD ["python", "service.py"]
