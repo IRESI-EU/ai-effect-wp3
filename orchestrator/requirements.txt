@@ -1,6 +1,6 @@
 grpcio>=1.50.0
 grpcio-tools>=1.50.0
-protobuf>=4.21.0
+protobuf>=4.25.8
 pydantic>=2.0.0
 redis>=5.0.0
 httpx>=0.25.0
