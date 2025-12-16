@@ -7,11 +7,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy orchestrator source code
-COPY orchestrator.py .
 COPY src/ ./src/
 
-# Create logs directory
-RUN mkdir -p logs
+WORKDIR /app/src
 
-# Entry point
-ENTRYPOINT ["python", "orchestrator.py"]
+EXPOSE 8000
+
+CMD ["python", "main.py"]

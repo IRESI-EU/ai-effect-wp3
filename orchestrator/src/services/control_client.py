@@ -14,22 +14,6 @@ class ControlClientError(Exception):
     pass
 
 
-class ControlInput(BaseModel):
-    """Input for control execute request."""
-
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    reference: DataReference
-
-    @field_validator("name")
-    @classmethod
-    def name_not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("name is required")
-        return v
-
-
 class ExecuteRequest(BaseModel):
     """Request body for /control/execute."""
 
@@ -38,7 +22,7 @@ class ExecuteRequest(BaseModel):
     method: str
     workflow_id: str
     task_id: str
-    inputs: list[ControlInput] = []
+    inputs: list[DataReference] = []
     parameters: dict = {}
 
     @field_validator("method")
@@ -114,18 +98,11 @@ class ControlClient:
         if not base_url or not base_url.strip():
             raise ValueError("base_url is required")
 
-        control_inputs = []
-        if inputs:
-            for i, ref in enumerate(inputs):
-                control_inputs.append(
-                    ControlInput(name=f"input_{i}", reference=ref)
-                )
-
         request = ExecuteRequest(
             method=method,
             workflow_id=workflow_id,
             task_id=task_id,
-            inputs=control_inputs,
+            inputs=inputs or [],
             parameters=parameters or {},
         )
 

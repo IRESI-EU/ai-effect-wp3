@@ -11,6 +11,7 @@ import uvicorn
 from api.app import OrchestratorAPI
 from services.blueprint_parser import BlueprintParser
 from services.dockerinfo_parser import DockerInfoParser
+from services.log_service import configure_logging
 from services.state_store import RedisStateStore
 from services.task_queue import RedisTaskQueue
 from services.workflow_engine import WorkflowEngine
@@ -59,9 +60,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    logging.basicConfig(
+    # Configure logging with file rotation
+    configure_logging(
+        log_dir="logs",
+        log_file="orchestrator.log",
         level=getattr(logging, args.log_level.upper()),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     logger.info("Starting orchestrator API server")

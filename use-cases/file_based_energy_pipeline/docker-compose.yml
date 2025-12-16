@@ -4,52 +4,39 @@ services:
       context: .
       dockerfile: services/input_provider/Dockerfile
     ports:
-      - "50050:50051"
-    networks:
-      - energy-pipeline
+      - "18081:8080"
+    environment:
+      - PORT=8080
 
   data-generator:
     build:
       context: .
       dockerfile: services/data_generator/Dockerfile
     ports:
-      - "50051:50051"
+      - "18082:8080"
     volumes:
       - ./data:/app/data
-    networks:
-      - energy-pipeline
-    depends_on:
-      - input-provider
+    environment:
+      - PORT=8080
 
   data-analyzer:
     build:
       context: .
       dockerfile: services/data_analyzer/Dockerfile
     ports:
-      - "50052:50052"
+      - "18083:8080"
     volumes:
       - ./data:/app/data
-    networks:
-      - energy-pipeline
-    depends_on:
-      - data-generator
+    environment:
+      - PORT=8080
 
   report-generator:
     build:
       context: .
       dockerfile: services/report_generator/Dockerfile
     ports:
-      - "50053:50053"
+      - "18084:8080"
     volumes:
       - ./data:/app/data
-    networks:
-      - energy-pipeline
-    depends_on:
-      - data-analyzer
-
-networks:
-  energy-pipeline:
-    driver: bridge
-
-volumes:
-  data:
+    environment:
+      - PORT=8080

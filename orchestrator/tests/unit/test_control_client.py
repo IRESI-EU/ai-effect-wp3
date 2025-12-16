@@ -7,7 +7,6 @@ from models.data_reference import DataReference, Format, Protocol
 from services.control_client import (
     ControlClient,
     ControlClientError,
-    ControlInput,
     ExecuteRequest,
     ExecuteResponse,
     OutputResponse,
@@ -162,8 +161,7 @@ class TestExecute:
         assert body["workflow_id"] == "wf-123"
         assert body["task_id"] == "task-456"
         assert len(body["inputs"]) == 1
-        assert body["inputs"][0]["name"] == "input_0"
-        assert body["inputs"][0]["reference"]["uri"] == "s3://bucket/input.csv"
+        assert body["inputs"][0]["uri"] == "s3://bucket/input.csv"
 
     def test_execute_with_parameters(self, client, httpx_mock: HTTPXMock, sample_output):
         """Execute sends parameters correctly."""
@@ -424,24 +422,13 @@ class TestGetOutput:
 class TestModels:
     """Tests for request/response models."""
 
-    def test_control_input_valid(self, sample_input):
-        """Create valid ControlInput."""
-        ci = ControlInput(name="input_0", reference=sample_input)
-        assert ci.name == "input_0"
-        assert ci.reference == sample_input
-
-    def test_control_input_empty_name_raises(self, sample_input):
-        """Empty name raises error."""
-        with pytest.raises(ValueError, match="name is required"):
-            ControlInput(name="", reference=sample_input)
-
     def test_execute_request_valid(self, sample_input):
         """Create valid ExecuteRequest."""
         req = ExecuteRequest(
             method="ProcessData",
             workflow_id="wf-123",
             task_id="task-456",
-            inputs=[ControlInput(name="input_0", reference=sample_input)],
+            inputs=[sample_input],
             parameters={"batch_size": 100},
         )
         assert req.method == "ProcessData"

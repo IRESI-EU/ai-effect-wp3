@@ -4,7 +4,6 @@ from services.blueprint_parser import BlueprintParseError, BlueprintParser
 from services.control_client import (
     ControlClient,
     ControlClientError,
-    ControlInput,
     ExecuteRequest,
     ExecuteResponse,
     OutputResponse,
@@ -15,6 +14,8 @@ from services.dockerinfo_parser import (
     DockerInfoParser,
     ServiceEndpoint,
 )
+from services.grpc_service import GrpcService
+from services.log_service import SizeAndTimeRotatingHandler, configure_logging
 from services.state_store import (
     RedisStateStore,
     TaskNotFoundError,
@@ -29,19 +30,21 @@ __all__ = [
     "BlueprintParser",
     "ControlClient",
     "ControlClientError",
-    "ControlInput",
     "DockerInfoParseError",
     "DockerInfoParser",
     "ExecuteRequest",
     "ExecuteResponse",
+    "GrpcService",
     "OutputResponse",
     "RedisStateStore",
     "RedisTaskQueue",
     "ServiceEndpoint",
+    "SizeAndTimeRotatingHandler",
     "StatusResponse",
     "TaskNotFoundError",
     "Worker",
     "WorkerError",
     "WorkflowEngine",
     "WorkflowNotFoundError",
+    "configure_logging",
 ]
