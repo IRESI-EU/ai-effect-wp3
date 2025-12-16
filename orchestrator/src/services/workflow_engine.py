@@ -204,6 +204,12 @@ class WorkflowEngine:
         state = self._state_store.get_workflow(workflow_id)
         return state.status in (WorkflowStatus.COMPLETED, WorkflowStatus.FAILED)
 
+    def get_all_tasks(self, workflow_id: str) -> list[TaskState]:
+        """Get all tasks for a workflow."""
+        if not workflow_id:
+            raise ValueError("workflow_id is required")
+        return self._state_store.get_workflow_tasks(workflow_id)
+
     def _all_tasks_completed(self, workflow_id: str) -> bool:
         """Check if all tasks in workflow are completed."""
         tasks = self._state_store.get_workflow_tasks(workflow_id)
