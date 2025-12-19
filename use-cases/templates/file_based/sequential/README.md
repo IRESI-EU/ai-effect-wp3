@@ -13,7 +13,7 @@ docker run -d --name redis -p 6379:6379 redis:7-alpine
 ### 2. Start Your Service
 
 ```bash
-cd use-cases/templates/sequential
+cd use-cases/templates/file_based/sequential
 pip install -r requirements.txt
 PORT=8080 python service.py
 ```

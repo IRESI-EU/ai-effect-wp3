@@ -22,6 +22,12 @@ message GenerateReportResponse {
   string summary = 4;
 }
 
+message Empty {}
+
 service ReportGeneratorService {
+  // Generate report (can be called directly or triggered via HTTP)
   rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
+
+  // Fetch last cached result (called by downstream services via gRPC)
+  rpc GetLastResult(Empty) returns (GenerateReportResponse);
 }

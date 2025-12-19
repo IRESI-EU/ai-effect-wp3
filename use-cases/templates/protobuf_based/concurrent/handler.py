@@ -1,7 +1,13 @@
 """Orchestrator handler for concurrent (multithreaded) services.
 
-Import this module and implement your methods in service.py.
+This handler provides the HTTP control interface for the orchestrator.
+Data exchange between services happens directly via gRPC.
+
 Supports multiple simultaneous long-running tasks with progress tracking.
+
+Note: Task state is stored in a module-level global (in-memory). This works
+for single-process containers. For multi-process deployments (e.g., multiple
+uvicorn workers), use external state storage like Redis instead.
 """
 
 import logging
@@ -17,7 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class DataReference(BaseModel):
-    """Reference to data location."""
+    """Reference to data location.
+
+    For protobuf-based services, protocol is "grpc" and uri is the gRPC endpoint.
+    """
 
     protocol: str
     uri: str
@@ -82,7 +91,7 @@ class TaskManager:
                 self._tasks[task_id]["progress"] = min(max(progress, 0), 100)
 
     def complete_task(self, task_id: str, output: dict) -> None:
-        """Mark task as complete with output."""
+        """Mark task as complete with output (gRPC reference dict)."""
         with self._lock:
             if task_id in self._tasks:
                 self._tasks[task_id]["status"] = "complete"
@@ -153,8 +162,8 @@ def create_app(service_module) -> FastAPI:
         FastAPI application.
     """
     app = FastAPI(
-        title="Concurrent Service",
-        description="Multithreaded service using orchestrator control interface",
+        title="Concurrent Protobuf Service",
+        description="HTTP control interface with gRPC data exchange",
         version="1.0.0",
     )
 

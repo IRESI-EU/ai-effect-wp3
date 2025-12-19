@@ -13,6 +13,12 @@ message GenerateDataResponse {
   repeated common.EnergyRecord records = 3;
 }
 
+message Empty {}
+
 service DataGeneratorService {
+  // Generate data (can be called directly or triggered via HTTP)
   rpc GenerateData(GenerateDataRequest) returns (GenerateDataResponse);
+
+  // Fetch last cached result (called by downstream services via gRPC)
+  rpc GetLastResult(Empty) returns (GenerateDataResponse);
 }

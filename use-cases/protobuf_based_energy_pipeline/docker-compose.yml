@@ -1,58 +1,48 @@
 services:
-  input_provider:
+  input-provider:
     build:
       context: .
       dockerfile: services/input_provider/Dockerfile
-    container_name: protobuf_input_provider
-    environment:
-      - GRPC_PORT=50051
     ports:
-      - "50050:50051"
-    networks:
-      - energy_pipeline_net
+      - "18081:8080"   # HTTP control interface
+      - "50051:50051"  # gRPC data interface
+    environment:
+      - PORT=8080
+      - GRPC_PORT=50051
+      - GRPC_HOST=input-provider
 
-  data_generator:
+  data-generator:
     build:
       context: .
       dockerfile: services/data_generator/Dockerfile
-    container_name: protobuf_data_generator
-    environment:
-      - GRPC_PORT=50051
     ports:
-      - "50051:50051"
-    networks:
-      - energy_pipeline_net
-    depends_on:
-      - input_provider
+      - "18082:8080"   # HTTP control interface
+      - "50052:50051"  # gRPC data interface
+    environment:
+      - PORT=8080
+      - GRPC_PORT=50051
+      - GRPC_HOST=data-generator
 
-  data_analyzer:
+  data-analyzer:
     build:
       context: .
       dockerfile: services/data_analyzer/Dockerfile
-    container_name: protobuf_data_analyzer
-    environment:
-      - GRPC_PORT=50051
     ports:
-      - "50052:50051"
-    networks:
-      - energy_pipeline_net
-    depends_on:
-      - data_generator
+      - "18083:8080"   # HTTP control interface
+      - "50053:50051"  # gRPC data interface
+    environment:
+      - PORT=8080
+      - GRPC_PORT=50051
+      - GRPC_HOST=data-analyzer
 
-  report_generator:
+  report-generator:
     build:
       context: .
       dockerfile: services/report_generator/Dockerfile
-    container_name: protobuf_report_generator
-    environment:
-      - GRPC_PORT=50051
     ports:
-      - "50053:50051"
-    networks:
-      - energy_pipeline_net
-    depends_on:
-      - data_analyzer
-
-networks:
-  energy_pipeline_net:
-    driver: bridge
+      - "18084:8080"   # HTTP control interface
+      - "50054:50051"  # gRPC data interface
+    environment:
+      - PORT=8080
+      - GRPC_PORT=50051
+      - GRPC_HOST=report-generator
