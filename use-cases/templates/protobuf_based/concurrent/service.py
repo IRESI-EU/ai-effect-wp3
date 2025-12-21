@@ -4,7 +4,7 @@ This template shows how to:
 1. Expose HTTP control interface for orchestrator
 2. Run gRPC server for data exchange with other services
 3. Handle long-running tasks with progress tracking
-4. Cache results for downstream services to fetch via gRPC
+4. Call upstream services via gRPC (direct method calls)
 
 Each method should be named execute_<MethodName> where MethodName
 matches the operation name in the blueprint.
@@ -13,7 +13,6 @@ matches the operation name in the blueprint.
 import logging
 import os
 import sys
-import threading
 import time
 from concurrent import futures
 
@@ -37,29 +36,15 @@ from handler import (
 
 logger = logging.getLogger(__name__)
 
-# Cached last result for gRPC access by downstream services
-# _last_result: my_service_pb2.MyResponse | None = None
-_last_result = None
-_result_lock = threading.Lock()
 
-
-# --- gRPC Server (for downstream services to fetch data) ---
+# --- gRPC Server (for downstream services to call your methods) ---
 
 # class MyServiceServicer(my_service_pb2_grpc.MyServiceServicer):
-#     """gRPC servicer that provides cached results to downstream services."""
+#     """gRPC servicer that handles requests from downstream services."""
 #
 #     def ProcessData(self, request, context):
-#         """Process data (can also be called directly via gRPC)."""
-#         return _process_data(request)
-#
-#     def GetLastResult(self, request, context):
-#         """Return cached result for downstream services."""
-#         with _result_lock:
-#             if _last_result is None:
-#                 context.set_code(grpc.StatusCode.NOT_FOUND)
-#                 context.set_details("No result available yet")
-#                 return my_service_pb2.MyResponse(success=False)
-#             return _last_result
+#         """Process data. Called directly by downstream services."""
+#         return _process_data(request.input_value)
 
 
 def start_grpc_server():
@@ -78,24 +63,27 @@ def start_grpc_server():
     return server
 
 
-# --- gRPC Client (to fetch data from upstream services) ---
+# --- gRPC Client (to call upstream service methods directly) ---
 
-def fetch_from_upstream(grpc_uri: str):
-    """Fetch data from upstream service via gRPC.
+def fetch_from_upstream(grpc_uri: str, method_name: str):
+    """Call a method on upstream service via gRPC.
 
     Args:
         grpc_uri: The gRPC endpoint (e.g., "upstream-service:50051")
+        method_name: The method to call (e.g., "GetConfiguration")
 
     Returns:
         The protobuf response from upstream service.
     """
-    logger.info(f"Fetching data from {grpc_uri}")
+    logger.info(f"Calling {method_name} on {grpc_uri}")
 
     channel = grpc.insecure_channel(grpc_uri)
     # stub = upstream_service_pb2_grpc.UpstreamServiceStub(channel)
 
     try:
-        # response = stub.GetLastResult(upstream_service_pb2.Empty())
+        # Call the method directly:
+        # method = getattr(stub, method_name)
+        # response = method(upstream_service_pb2.SomeRequest())
         # return response
         pass
     finally:
@@ -106,14 +94,14 @@ def fetch_from_upstream(grpc_uri: str):
 
 def execute_QuickProcess(request: ExecuteRequest) -> ExecuteResponse:
     """Quick operation that completes immediately and returns gRPC endpoint."""
-    global _last_result
 
     # 1. Fetch input from upstream via gRPC (if inputs provided)
     for inp in request.inputs:
         if inp.get("protocol") == "grpc":
             upstream_uri = inp.get("uri")
+            method_name = inp.get("format")  # format contains the method name
             try:
-                upstream_data = fetch_from_upstream(upstream_uri)
+                upstream_data = fetch_from_upstream(upstream_uri, method_name)
                 # Use upstream_data for processing...
             except grpc.RpcError as e:
                 logger.error(f"Failed to fetch from upstream: {e}")
@@ -122,11 +110,7 @@ def execute_QuickProcess(request: ExecuteRequest) -> ExecuteResponse:
     # 2. Process the data
     # result = process(upstream_data)
 
-    # 3. Cache result for downstream gRPC access
-    # with _result_lock:
-    #     _last_result = result
-
-    # 4. Return gRPC endpoint reference
+    # 3. Return gRPC endpoint reference
     grpc_host = os.environ.get("GRPC_HOST", "my-service")
     grpc_port = os.environ.get("GRPC_PORT", "50051")
 
@@ -135,7 +119,7 @@ def execute_QuickProcess(request: ExecuteRequest) -> ExecuteResponse:
         output=DataReference(
             protocol="grpc",
             uri=f"{grpc_host}:{grpc_port}",
-            format="MyResponse",  # The protobuf message type
+            format="QuickProcess",  # Method name for downstream to call
         ),
     )
 
@@ -166,33 +150,22 @@ def _process_long_running(
         request: Original request with inputs/parameters.
         manager: TaskManager for updating progress.
     """
-    global _last_result
-
     try:
         # 1. Fetch input from upstream via gRPC (if inputs provided)
         upstream_data = None
         for inp in request.inputs:
             if inp.get("protocol") == "grpc":
                 upstream_uri = inp.get("uri")
-                upstream_data = fetch_from_upstream(upstream_uri)
+                method_name = inp.get("format")  # format contains the method name
+                upstream_data = fetch_from_upstream(upstream_uri, method_name)
                 break
 
         # 2. Process with progress updates
-        # Example: decode input protobuf
-        # input_msg = upstream_data  # or decode from parameters
-
         for progress in range(0, 101, 20):
             time.sleep(1)  # Replace with actual work
             manager.update_progress(task_id, progress)
 
-        # 3. Create and cache result for downstream gRPC access
-        # result = my_service_pb2.MyResponse()
-        # result.computed_value = ...
-        # result.success = True
-        # with _result_lock:
-        #     _last_result = result
-
-        # 4. Complete task with gRPC endpoint reference
+        # 3. Complete task with gRPC endpoint reference
         grpc_host = os.environ.get("GRPC_HOST", "my-service")
         grpc_port = os.environ.get("GRPC_PORT", "50051")
 
@@ -201,7 +174,7 @@ def _process_long_running(
             {
                 "protocol": "grpc",
                 "uri": f"{grpc_host}:{grpc_port}",
-                "format": "MyResponse",
+                "format": "LongProcess",  # Method name for downstream to call
             },
         )
 

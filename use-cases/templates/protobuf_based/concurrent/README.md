@@ -19,18 +19,15 @@ Orchestrator                     Services
      │
      │ HTTP /control/output      (when complete)
      ├─────────────────────────►
-     │◄───────────────────────── {protocol:"grpc", uri:"service-a:50051"}
+     │◄───────────────────────── {protocol:"grpc", uri:"...", format:"ProcessData"}
      │
      │ HTTP /control/execute     Service B
-     ├─────────────────────────► (fetches from A via gRPC)
-     │                              │
-     │                              │ gRPC GetLastResult()
-     │                              ▼
-     │                           Service A gRPC server
+     ├─────────────────────────► (calls A.ProcessData via gRPC)
 ```
 
 - **Orchestrator** controls execution ORDER via HTTP, polls for completion
-- **Services** exchange DATA directly via gRPC/protobuf
+- **Services** exchange DATA directly via gRPC (calling actual methods)
+- **format** field contains the gRPC method name to call
 
 ## Quick Start
 
@@ -51,9 +48,9 @@ python service.py
    - Background thread processes, updates progress
    - Orchestrator polls `/control/status/{task_id}`
    - When complete, orchestrator fetches output via `/control/output/{task_id}`
-   - Output contains gRPC endpoint reference for downstream
+   - Output contains gRPC endpoint + method name
 
-3. Downstream services fetch data via gRPC `GetLastResult()`
+3. Downstream services call the method directly via gRPC
 
 ## Adding Methods
 
@@ -72,33 +69,26 @@ def execute_TrainModel(request: ExecuteRequest) -> ExecuteResponse:
 
 
 def _train_worker(task_id: str, request: ExecuteRequest, manager: TaskManager) -> None:
-    global _last_result
-
     try:
-        # 1. Fetch input from upstream via gRPC
+        # 1. Call upstream method via gRPC
         for inp in request.inputs:
             if inp.get("protocol") == "grpc":
-                config = fetch_from_upstream(inp["uri"])
+                upstream_uri = inp["uri"]
+                method_name = inp["format"]
+                config = call_upstream(upstream_uri, method_name)
 
         # 2. Process with progress updates
         for epoch in range(100):
             train_one_epoch()
             manager.update_progress(task_id, epoch + 1)
 
-        # 3. Cache result for downstream gRPC access
-        result = my_service_pb2.TrainResponse()
-        result.model_path = "/models/trained.pkl"
-        result.accuracy = 0.95
-        with _result_lock:
-            _last_result = result
-
-        # 4. Complete with gRPC endpoint reference
+        # 3. Complete with gRPC endpoint reference
         manager.complete_task(
             task_id,
             {
                 "protocol": "grpc",
                 "uri": f"{grpc_host}:{grpc_port}",
-                "format": "TrainResponse",
+                "format": "TrainModel",  # Method for downstream to call
             },
         )
 
@@ -108,16 +98,16 @@ def _train_worker(task_id: str, request: ExecuteRequest, manager: TaskManager) -
 
 ## Proto Files
 
-Your proto should include a `GetLastResult` method for downstream services:
+Define your service methods:
 
 ```protobuf
 service MyService {
-  rpc ProcessData(Request) returns (Response);
-  rpc GetLastResult(Empty) returns (Response);  // For downstream to fetch
+  rpc TrainModel(TrainRequest) returns (TrainResponse);
+  rpc GetPrediction(PredictRequest) returns (PredictResponse);
 }
-
-message Empty {}
 ```
+
+Each method can be called directly by downstream services.
 
 ## Task States
 

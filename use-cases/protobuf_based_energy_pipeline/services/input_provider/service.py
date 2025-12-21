@@ -1,13 +1,12 @@
 """Input Provider service - HTTP control + gRPC data interface.
 
 HTTP /control/execute triggers configuration generation.
-gRPC GetLastResult allows downstream services to fetch the result directly.
+Downstream services call GetConfiguration directly via gRPC.
 """
 
 import logging
 import os
 import sys
-import threading
 from concurrent import futures
 
 import grpc
@@ -20,45 +19,21 @@ import input_provider_pb2_grpc
 
 logger = logging.getLogger(__name__)
 
-# Cached last result for gRPC access
-_last_result: input_provider_pb2.GetConfigurationResponse | None = None
-_result_lock = threading.Lock()
+# Store current configuration for gRPC calls
+_current_num_records = 10
 
 
 class InputProviderServicer(input_provider_pb2_grpc.InputProviderServicer):
-    """gRPC servicer that provides cached results to downstream services."""
+    """gRPC servicer for configuration requests."""
 
     def GetConfiguration(self, request, context):
-        """Generate configuration (can also be called directly via gRPC)."""
-        return _generate_configuration()
-
-    def GetLastResult(self, request, context):
-        """Return cached result for downstream services."""
-        with _result_lock:
-            if _last_result is None:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details("No result available yet")
-                return input_provider_pb2.GetConfigurationResponse(
-                    success=False,
-                    message="No result available",
-                )
-            return _last_result
-
-
-def _generate_configuration(num_records: int = 10) -> input_provider_pb2.GetConfigurationResponse:
-    """Generate configuration and cache it."""
-    global _last_result
-
-    response = input_provider_pb2.GetConfigurationResponse(
-        success=True,
-        message=f"Configuration provided: {num_records} records",
-        num_records=num_records,
-    )
-
-    with _result_lock:
-        _last_result = response
-
-    return response
+        """Return configuration. Called directly by downstream services."""
+        num_records = request.num_records if request.num_records > 0 else _current_num_records
+        return input_provider_pb2.GetConfigurationResponse(
+            success=True,
+            message=f"Configuration provided: {num_records} records",
+            num_records=num_records,
+        )
 
 
 def start_grpc_server():
@@ -77,18 +52,18 @@ def start_grpc_server():
 # --- HTTP Control Interface ---
 
 def execute_GetConfiguration(request: ExecuteRequest) -> ExecuteResponse:
-    """HTTP handler: Generate configuration, cache it, return gRPC endpoint."""
-    num_records = request.parameters.get("num_records", 10)
+    """HTTP handler: Set configuration, return gRPC endpoint for downstream."""
+    global _current_num_records
 
-    logger.info(f"GetConfiguration: num_records={num_records}")
+    _current_num_records = request.parameters.get("num_records", 10)
 
-    # Generate and cache result
-    result = _generate_configuration(num_records)
+    logger.info("=" * 60)
+    logger.info("INPUT PROVIDER - Configuration")
+    logger.info("=" * 60)
+    logger.info(f"  Number of records to generate: {_current_num_records}")
+    logger.info("=" * 60)
 
-    if not result.success:
-        return ExecuteResponse(status="failed", error=result.message)
-
-    # Return reference to gRPC endpoint where downstream can fetch the data
+    # Return reference to gRPC endpoint where downstream can call GetConfiguration
     grpc_host = os.environ.get("GRPC_HOST", "input-provider")
     grpc_port = os.environ.get("GRPC_PORT", "50051")
 
@@ -97,7 +72,7 @@ def execute_GetConfiguration(request: ExecuteRequest) -> ExecuteResponse:
         output=DataReference(
             protocol="grpc",
             uri=f"{grpc_host}:{grpc_port}",
-            format="GetConfigurationResponse",
+            format="GetConfiguration",  # Method name to call
         ),
     )
 

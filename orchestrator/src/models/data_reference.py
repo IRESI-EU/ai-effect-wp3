@@ -39,7 +39,7 @@ class DataReference(BaseModel):
 
     protocol: Protocol
     uri: str
-    format: Format
+    format: Format | str  # str allowed for GRPC (protobuf message type name)
     schema_uri: str | None = None
     size_bytes: int | None = None
     checksum: str | None = None
@@ -69,6 +69,20 @@ class DataReference(BaseModel):
             if not alg or not val:
                 raise ValueError("checksum algorithm and value required")
         return v
+
+    @model_validator(mode="after")
+    def validate_format_for_protocol(self) -> "DataReference":
+        """Validate format matches protocol requirements."""
+        if self.protocol != Protocol.GRPC and isinstance(self.format, str):
+            # For non-GRPC protocols, format must be a valid Format enum
+            try:
+                Format(self.format)
+            except ValueError:
+                valid = ", ".join(f.value for f in Format)
+                raise ValueError(
+                    f"format must be one of: {valid} (or any string for GRPC protocol)"
+                )
+        return self
 
     @model_validator(mode="after")
     def validate_uri_for_protocol(self) -> "DataReference":

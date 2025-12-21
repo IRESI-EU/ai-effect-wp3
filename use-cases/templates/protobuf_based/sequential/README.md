@@ -11,19 +11,22 @@ Orchestrator                     Services
      │ HTTP /control/execute
      ├─────────────────────────► Service A
      │                              │
-     │                              │ gRPC (data)
+     │                              │ returns gRPC endpoint
+     │                              │ format = "GetConfiguration"
      │                              ▼
      │ HTTP /control/execute     Service B
-     ├─────────────────────────► (fetches from A via gRPC)
+     ├─────────────────────────► (calls A.GetConfiguration via gRPC)
      │                              │
-     │                              │ gRPC (data)
+     │                              │ returns gRPC endpoint
+     │                              │ format = "GenerateData"
      │                              ▼
      │ HTTP /control/execute     Service C
-     └─────────────────────────► (fetches from B via gRPC)
+     └─────────────────────────► (calls B.GenerateData via gRPC)
 ```
 
 - **Orchestrator** controls execution ORDER via HTTP
-- **Services** exchange DATA directly via gRPC/protobuf
+- **Services** exchange DATA directly via gRPC (calling actual methods)
+- **format** field contains the gRPC method name to call
 
 ## Quick Start
 
@@ -39,12 +42,11 @@ python service.py
    - **gRPC** (port 50051): Data interface for service-to-service communication
 
 2. When orchestrator triggers execution:
-   - Service fetches input from upstream via gRPC
+   - Service calls upstream method via gRPC (e.g., `stub.GetConfiguration()`)
    - Processes the data
-   - Caches result for downstream services
-   - Returns gRPC endpoint reference to orchestrator
+   - Returns gRPC endpoint + method name for downstream
 
-3. Orchestrator passes the gRPC reference to downstream services
+3. Downstream services call the method directly via gRPC
 
 ## Adding Methods
 
@@ -52,39 +54,39 @@ Edit `service.py`:
 
 ```python
 def execute_MyMethod(request: ExecuteRequest) -> ExecuteResponse:
-    # 1. Fetch input from upstream via gRPC
+    # 1. Call upstream method via gRPC
     for inp in request.inputs:
         if inp.get("protocol") == "grpc":
-            upstream_data = fetch_from_upstream(inp["uri"])
+            upstream_uri = inp["uri"]
+            method_name = inp["format"]  # e.g., "GetConfiguration"
+            upstream_data = call_upstream(upstream_uri, method_name)
 
     # 2. Process data
     result = process(upstream_data)
 
-    # 3. Cache for downstream
-    with _result_lock:
-        _last_result = result
-
-    # 4. Return gRPC endpoint
+    # 3. Return gRPC endpoint with your method name
     return ExecuteResponse(
         status="complete",
         output=DataReference(
             protocol="grpc",
             uri=f"{grpc_host}:{grpc_port}",
-            format="MyResponse",
+            format="MyMethod",  # Method for downstream to call
         ),
     )
 ```
 
 ## Proto Files
 
-Your proto should include a `GetLastResult` method for downstream services:
+Define your service methods:
 
 ```protobuf
 service MyService {
-  rpc ProcessData(Request) returns (Response);
-  rpc GetLastResult(Empty) returns (Response);  // For downstream to fetch
+  rpc ProcessData(ProcessRequest) returns (ProcessResponse);
+  rpc AnalyzeData(AnalyzeRequest) returns (AnalyzeResponse);
 }
 ```
+
+Each method can be called directly by downstream services.
 
 ## Docker
 
