@@ -264,6 +264,53 @@ class TestStartWorkflow:
         with pytest.raises(ValueError, match="workflow_id is required"):
             engine.start_workflow("")
 
+    def test_sets_initial_inputs_on_start_nodes(self, engine):
+        """Start sets initial inputs on start nodes."""
+        graph = create_single_node_graph()
+        engine.initialize_workflow("wf-1", graph)
+
+        initial_input = DataReference(
+            protocol=Protocol.GRPC,
+            uri="upstream-service:50051",
+            format="GetConfiguration",
+        )
+        engine.start_workflow("wf-1", initial_inputs=[initial_input])
+
+        task = engine.claim_task("wf-1", timeout=1)
+        assert len(task.input_refs) == 1
+        assert task.input_refs[0].uri == "upstream-service:50051"
+        assert task.input_refs[0].format == "GetConfiguration"
+
+    def test_sets_initial_inputs_on_all_parallel_start_nodes(self, engine):
+        """Start sets initial inputs on all parallel start nodes."""
+        graph = create_parallel_graph()
+        engine.initialize_workflow("wf-1", graph)
+
+        initial_input = DataReference(
+            protocol=Protocol.S3,
+            uri="s3://bucket/input.json",
+            format=Format.JSON,
+        )
+        engine.start_workflow("wf-1", initial_inputs=[initial_input])
+
+        # Both start nodes should receive the initial inputs
+        task1 = engine.claim_task("wf-1", timeout=1)
+        task2 = engine.claim_task("wf-1", timeout=1)
+
+        assert len(task1.input_refs) == 1
+        assert task1.input_refs[0].uri == "s3://bucket/input.json"
+        assert len(task2.input_refs) == 1
+        assert task2.input_refs[0].uri == "s3://bucket/input.json"
+
+    def test_no_initial_inputs_leaves_start_nodes_empty(self, engine):
+        """Start without initial inputs leaves start nodes with empty input_refs."""
+        graph = create_single_node_graph()
+        engine.initialize_workflow("wf-1", graph)
+        engine.start_workflow("wf-1")
+
+        task = engine.claim_task("wf-1", timeout=1)
+        assert len(task.input_refs) == 0
+
 
 class TestClaimTask:
     """Tests for claim_task method."""

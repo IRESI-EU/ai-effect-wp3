@@ -194,6 +194,94 @@ class TestSubmitWorkflow:
         mock_engine.initialize_workflow.assert_called_once()
         mock_engine.start_workflow.assert_called_once()
 
+    def test_submit_workflow_with_inputs(
+        self,
+        client,
+        mock_engine,
+        mock_blueprint_parser,
+        mock_dockerinfo_parser,
+        valid_blueprint,
+        valid_dockerinfo,
+    ):
+        """Submit workflow with initial inputs passes them to engine."""
+        mock_blueprint_parser.parse_json.return_value = MagicMock()
+        mock_dockerinfo_parser.parse_json.return_value = {}
+
+        inputs = [
+            {"protocol": "grpc", "uri": "upstream:50051", "format": "GetConfiguration"}
+        ]
+
+        response = client.post(
+            "/workflows",
+            json={
+                "blueprint": valid_blueprint,
+                "dockerinfo": valid_dockerinfo,
+                "inputs": inputs,
+            },
+        )
+
+        assert response.status_code == 200
+        # Verify start_workflow was called with initial_inputs
+        call_args = mock_engine.start_workflow.call_args
+        assert call_args is not None
+        # Check the initial_inputs argument
+        initial_inputs = call_args[0][1] if len(call_args[0]) > 1 else call_args[1].get("initial_inputs")
+        assert initial_inputs is not None
+        assert len(initial_inputs) == 1
+        assert initial_inputs[0].uri == "upstream:50051"
+
+    def test_submit_workflow_with_invalid_inputs(
+        self,
+        client,
+        mock_blueprint_parser,
+        mock_dockerinfo_parser,
+        valid_blueprint,
+        valid_dockerinfo,
+    ):
+        """Submit workflow with invalid inputs returns 400."""
+        mock_blueprint_parser.parse_json.return_value = MagicMock()
+        mock_dockerinfo_parser.parse_json.return_value = {}
+
+        # Invalid input: missing required 'uri' field
+        inputs = [{"protocol": "grpc", "format": "GetConfiguration"}]
+
+        response = client.post(
+            "/workflows",
+            json={
+                "blueprint": valid_blueprint,
+                "dockerinfo": valid_dockerinfo,
+                "inputs": inputs,
+            },
+        )
+
+        assert response.status_code == 400
+        assert "Invalid inputs" in response.json()["detail"]
+
+    def test_submit_workflow_without_inputs(
+        self,
+        client,
+        mock_engine,
+        mock_blueprint_parser,
+        mock_dockerinfo_parser,
+        valid_blueprint,
+        valid_dockerinfo,
+    ):
+        """Submit workflow without inputs passes None to engine."""
+        mock_blueprint_parser.parse_json.return_value = MagicMock()
+        mock_dockerinfo_parser.parse_json.return_value = {}
+
+        response = client.post(
+            "/workflows",
+            json={"blueprint": valid_blueprint, "dockerinfo": valid_dockerinfo},
+        )
+
+        assert response.status_code == 200
+        # Verify start_workflow was called with None for initial_inputs
+        call_args = mock_engine.start_workflow.call_args
+        assert call_args is not None
+        initial_inputs = call_args[0][1] if len(call_args[0]) > 1 else call_args[1].get("initial_inputs")
+        assert initial_inputs is None
+
     def test_submit_workflow_invalid_blueprint(
         self, client, mock_blueprint_parser, valid_blueprint, valid_dockerinfo
     ):

@@ -85,8 +85,17 @@ class WorkflowEngine:
 
         return workflow
 
-    def start_workflow(self, workflow_id: str) -> None:
-        """Start workflow execution by enqueueing initial tasks."""
+    def start_workflow(
+        self,
+        workflow_id: str,
+        initial_inputs: list[DataReference] | None = None,
+    ) -> None:
+        """Start workflow execution by enqueueing initial tasks.
+
+        Args:
+            workflow_id: The workflow ID.
+            initial_inputs: Optional list of DataReferences to pass to start nodes.
+        """
         if not workflow_id:
             raise ValueError("workflow_id is required")
 
@@ -100,6 +109,9 @@ class WorkflowEngine:
 
             deps_count = self._redis.scard(self._deps_key(workflow_id, task_id))
             if deps_count == 0:
+                # Set initial inputs for start nodes
+                if initial_inputs:
+                    self._append_input_refs(workflow_id, task_id, initial_inputs)
                 self._task_queue.enqueue_task(workflow_id, task_id)
 
     def claim_task(self, workflow_id: str, timeout: int = 0) -> TaskState | None:

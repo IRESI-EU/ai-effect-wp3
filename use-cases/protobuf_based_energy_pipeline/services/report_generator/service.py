@@ -1,13 +1,16 @@
 """Report Generator service - HTTP control + gRPC data interface.
 
-HTTP /control/execute triggers report generation.
-Calls data_analyzer.AnalyzeData directly via gRPC.
-Downstream services can call GenerateReport directly via gRPC.
+Receives analyzed data from upstream (data_analyzer) via gRPC.
+Generates report and caches results for downstream gRPC calls.
+
+Data flow:
+  data_analyzer ──(gRPC)──> report_generator ──(gRPC)──> [end]
 """
 
 import logging
 import os
 import sys
+import threading
 from collections import defaultdict
 from concurrent import futures
 
@@ -23,23 +26,25 @@ import report_generator_pb2_grpc
 
 logger = logging.getLogger(__name__)
 
-# Store current report data for gRPC calls
-_current_analyzed_records: list = []
-_current_total_records = 0
-_current_anomalies_detected = 0
-_current_average_efficiency = 0.0
+# Cache generated report for downstream gRPC calls
+_cached_response: report_generator_pb2.GenerateReportResponse | None = None
+_cache_lock = threading.Lock()
 
 
 class ReportGeneratorServicer(report_generator_pb2_grpc.ReportGeneratorServiceServicer):
     """gRPC servicer for report generation requests."""
 
     def GenerateReport(self, request, context):
-        """Generate report. Called directly by downstream services."""
-        records = list(request.analyzed_records) if request.analyzed_records else _current_analyzed_records
-        total = request.total_records if request.total_records > 0 else _current_total_records
-        anomalies = request.anomalies_detected if request.anomalies_detected > 0 else _current_anomalies_detected
-        efficiency = request.average_efficiency if request.average_efficiency > 0 else _current_average_efficiency
-        return _generate_report(records, total, anomalies, efficiency)
+        """Return cached report to downstream services."""
+        with _cache_lock:
+            if _cached_response is None:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details("No report available. Service not yet triggered.")
+                return report_generator_pb2.GenerateReportResponse(
+                    success=False,
+                    message="No report available",
+                )
+            return _cached_response
 
 
 def _generate_report(
@@ -205,9 +210,8 @@ def start_grpc_server():
 # --- HTTP Control Interface ---
 
 def execute_GenerateReport(request: ExecuteRequest) -> ExecuteResponse:
-    """HTTP handler: Fetch analyzed data via gRPC, generate report, return gRPC endpoint."""
-    global _current_analyzed_records, _current_total_records
-    global _current_anomalies_detected, _current_average_efficiency
+    """HTTP handler: Fetch analyzed data via gRPC, generate report, cache for downstream."""
+    global _cached_response
 
     analyzed_data = None
 
@@ -224,27 +228,25 @@ def execute_GenerateReport(request: ExecuteRequest) -> ExecuteResponse:
     if not analyzed_data:
         return ExecuteResponse(status="failed", error="No input data available")
 
-    # Store for downstream gRPC calls
-    _current_analyzed_records = list(analyzed_data.analyzed_records)
-    _current_total_records = analyzed_data.total_records
-    _current_anomalies_detected = analyzed_data.anomalies_detected
-    _current_average_efficiency = analyzed_data.average_efficiency
-
     logger.info(f"GenerateReport: {analyzed_data.total_records} records")
 
     # Generate report with verbose output
     result = _generate_report(
-        _current_analyzed_records,
-        _current_total_records,
-        _current_anomalies_detected,
-        _current_average_efficiency,
+        list(analyzed_data.analyzed_records),
+        analyzed_data.total_records,
+        analyzed_data.anomalies_detected,
+        analyzed_data.average_efficiency,
         verbose=True,
     )
+
+    # Cache for downstream gRPC calls
+    with _cache_lock:
+        _cached_response = result
 
     if not result.success:
         return ExecuteResponse(status="failed", error=result.message)
 
-    # Return reference to gRPC endpoint where downstream can call GenerateReport
+    # Return gRPC endpoint for downstream to fetch report
     grpc_host = os.environ.get("GRPC_HOST", "report-generator")
     grpc_port = os.environ.get("GRPC_PORT", "50051")
 
@@ -253,7 +255,7 @@ def execute_GenerateReport(request: ExecuteRequest) -> ExecuteResponse:
         output=DataReference(
             protocol="grpc",
             uri=f"{grpc_host}:{grpc_port}",
-            format="GenerateReport",  # Method name to call
+            format="GenerateReport",
         ),
     )
 

@@ -1,14 +1,19 @@
 """Data Generator service - HTTP control + gRPC data interface.
 
-HTTP /control/execute triggers data generation.
-Calls input_provider.GetConfiguration directly via gRPC.
-Downstream services call GenerateData directly via gRPC.
+Receives configuration from upstream (input_provider) via inline data.
+Generates energy data and exposes it via gRPC for downstream services.
+
+Data flow:
+  input_provider ──(inline config)──> data_generator ──(gRPC)──> data_analyzer
 """
 
+import base64
+import json
 import logging
 import os
 import random
 import sys
+import threading
 from concurrent import futures
 from datetime import datetime, timedelta
 
@@ -20,25 +25,31 @@ from handler import DataReference, ExecuteRequest, ExecuteResponse, run
 import common_pb2
 import data_generator_pb2
 import data_generator_pb2_grpc
-import input_provider_pb2
-import input_provider_pb2_grpc
 
 logger = logging.getLogger(__name__)
 
-# Store current num_records for gRPC calls
-_current_num_records = 10
+# Cache generated data for downstream gRPC calls
+_cached_response: data_generator_pb2.GenerateDataResponse | None = None
+_cache_lock = threading.Lock()
 
 
 class DataGeneratorServicer(data_generator_pb2_grpc.DataGeneratorServiceServicer):
     """gRPC servicer for data generation requests."""
 
     def GenerateData(self, request, context):
-        """Generate data. Called directly by downstream services."""
-        num_records = request.num_records if request.num_records > 0 else _current_num_records
-        return _generate_data(num_records)
+        """Return cached generated data to downstream services."""
+        with _cache_lock:
+            if _cached_response is None:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details("No data available. Service not yet triggered.")
+                return data_generator_pb2.GenerateDataResponse(
+                    success=False,
+                    message="No data available",
+                )
+            return _cached_response
 
 
-def _generate_data(num_records: int, verbose: bool = False) -> data_generator_pb2.GenerateDataResponse:
+def _generate_data(num_records: int) -> data_generator_pb2.GenerateDataResponse:
     """Generate synthetic energy data."""
     logger.info(f"Generating {num_records} records")
 
@@ -62,37 +73,32 @@ def _generate_data(num_records: int, verbose: bool = False) -> data_generator_pb
     response.success = True
     response.message = f"Successfully generated {len(response.records)} energy records"
 
-    if verbose:
-        logger.info("=" * 60)
-        logger.info("DATA GENERATOR - Generated Records")
-        logger.info("=" * 60)
-        logger.info(f"  Total records: {len(response.records)}")
-        logger.info(f"  Households: {', '.join(households)}")
-        logger.info("  Sample records:")
-        for i, rec in enumerate(response.records[:3]):
-            logger.info(f"    [{i+1}] {rec.household_id}: {rec.power_consumption:.1f}W @ {rec.voltage:.1f}V")
-        if len(response.records) > 3:
-            logger.info(f"    ... and {len(response.records) - 3} more")
-        logger.info("=" * 60)
-    else:
-        logger.info(response.message)
+    logger.info("=" * 60)
+    logger.info("DATA GENERATOR - Generated Records")
+    logger.info("=" * 60)
+    logger.info(f"  Total records: {len(response.records)}")
+    logger.info(f"  Households: {', '.join(households)}")
+    logger.info("  Sample records:")
+    for i, rec in enumerate(response.records[:3]):
+        logger.info(f"    [{i+1}] {rec.household_id}: {rec.power_consumption:.1f}W @ {rec.voltage:.1f}V")
+    if len(response.records) > 3:
+        logger.info(f"    ... and {len(response.records) - 3} more")
+    logger.info("=" * 60)
+
     return response
 
 
-def _fetch_config_from_upstream(grpc_uri: str) -> input_provider_pb2.GetConfigurationResponse:
-    """Fetch configuration from input_provider via gRPC."""
-    logger.info(f"Calling GetConfiguration on {grpc_uri}")
-
-    channel = grpc.insecure_channel(grpc_uri)
-    stub = input_provider_pb2_grpc.InputProviderStub(channel)
-
-    try:
-        # Call the actual method directly
-        response = stub.GetConfiguration(input_provider_pb2.GetConfigurationRequest())
-        logger.info(f"Got config: num_records={response.num_records}")
-        return response
-    finally:
-        channel.close()
+def _parse_inline_config(inputs: list[dict]) -> dict:
+    """Parse inline config from input DataReferences."""
+    for inp in inputs:
+        if inp.get("protocol") == "inline":
+            try:
+                config_b64 = inp.get("uri", "")
+                config_json = base64.b64decode(config_b64).decode()
+                return json.loads(config_json)
+            except Exception as e:
+                logger.warning(f"Failed to parse inline config: {e}")
+    return {}
 
 
 def start_grpc_server():
@@ -111,35 +117,28 @@ def start_grpc_server():
 # --- HTTP Control Interface ---
 
 def execute_GenerateData(request: ExecuteRequest) -> ExecuteResponse:
-    """HTTP handler: Fetch config via gRPC, generate data, return gRPC endpoint."""
-    global _current_num_records
+    """HTTP handler: Read config from input, generate data, cache for downstream."""
+    global _cached_response
 
-    num_records = 10  # default
-
-    for inp in request.inputs:
-        if inp.get("protocol") == "grpc":
-            # Fetch config from input_provider via gRPC
-            upstream_uri = inp.get("uri")
-            try:
-                config = _fetch_config_from_upstream(upstream_uri)
-                num_records = config.num_records
-            except grpc.RpcError as e:
-                logger.error(f"Failed to fetch config: {e}")
-                return ExecuteResponse(status="failed", error=f"Failed to fetch config: {e}")
+    # Parse config from inline input (from input_provider)
+    config = _parse_inline_config(request.inputs)
+    num_records = config.get("num_records", 10)
 
     # Override with parameters if provided
     num_records = request.parameters.get("num_records", num_records)
-    _current_num_records = num_records
 
     logger.info(f"GenerateData: num_records={num_records}")
 
-    # Generate data with verbose output
-    result = _generate_data(num_records, verbose=True)
+    # Generate data and cache for downstream gRPC calls
+    result = _generate_data(num_records)
+
+    with _cache_lock:
+        _cached_response = result
 
     if not result.success:
         return ExecuteResponse(status="failed", error=result.message)
 
-    # Return reference to gRPC endpoint where downstream can call GenerateData
+    # Return gRPC endpoint for downstream to fetch the generated data
     grpc_host = os.environ.get("GRPC_HOST", "data-generator")
     grpc_port = os.environ.get("GRPC_PORT", "50051")
 
@@ -148,7 +147,7 @@ def execute_GenerateData(request: ExecuteRequest) -> ExecuteResponse:
         output=DataReference(
             protocol="grpc",
             uri=f"{grpc_host}:{grpc_port}",
-            format="GenerateData",  # Method name to call
+            format="GenerateData",
         ),
     )
 

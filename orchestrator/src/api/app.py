@@ -14,6 +14,7 @@ from api.models import (
     WorkflowSubmitRequest,
     WorkflowSubmitResponse,
 )
+from models.data_reference import DataReference
 from services.blueprint_parser import BlueprintParseError, BlueprintParser
 from services.dockerinfo_parser import DockerInfoParseError, DockerInfoParser
 from services.state_store import WorkflowNotFoundError, TaskNotFoundError
@@ -84,9 +85,19 @@ class OrchestratorAPI:
             if endpoints_data:
                 self._redis.hset(endpoints_key, mapping=endpoints_data)
 
+            # Parse initial inputs for start nodes
+            initial_inputs: list[DataReference] | None = None
+            if request.inputs:
+                try:
+                    initial_inputs = [DataReference(**inp) for inp in request.inputs]
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=400, detail=f"Invalid inputs: {e}"
+                    )
+
             # Initialize and start workflow
             self._engine.initialize_workflow(workflow_id, graph)
-            self._engine.start_workflow(workflow_id)
+            self._engine.start_workflow(workflow_id, initial_inputs)
 
             return WorkflowSubmitResponse(workflow_id=workflow_id, status="running")
 

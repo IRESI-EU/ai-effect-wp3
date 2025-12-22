@@ -12,6 +12,7 @@ class WorkflowSubmitRequest(BaseModel):
 
     blueprint: dict
     dockerinfo: dict
+    inputs: list[dict] = []  # Initial DataReference objects for start nodes
 
     @field_validator("blueprint")
     @classmethod

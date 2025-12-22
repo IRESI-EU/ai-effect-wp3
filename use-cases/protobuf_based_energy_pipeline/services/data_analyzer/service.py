@@ -1,13 +1,16 @@
 """Data Analyzer service - HTTP control + gRPC data interface.
 
-HTTP /control/execute triggers data analysis.
-Calls data_generator.GenerateData directly via gRPC.
-Downstream services call AnalyzeData directly via gRPC.
+Receives data from upstream (data_generator) via gRPC.
+Analyzes data and caches results for downstream gRPC calls.
+
+Data flow:
+  data_generator ──(gRPC)──> data_analyzer ──(gRPC)──> report_generator
 """
 
 import logging
 import os
 import sys
+import threading
 from concurrent import futures
 from statistics import mean, stdev
 
@@ -24,19 +27,25 @@ import data_generator_pb2_grpc
 
 logger = logging.getLogger(__name__)
 
-# Store current analysis parameters for gRPC calls
-_current_records: list = []
-_current_threshold = 2.0
+# Cache analyzed data for downstream gRPC calls
+_cached_response: data_analyzer_pb2.AnalyzeDataResponse | None = None
+_cache_lock = threading.Lock()
 
 
 class DataAnalyzerServicer(data_analyzer_pb2_grpc.DataAnalyzerServiceServicer):
     """gRPC servicer for data analysis requests."""
 
     def AnalyzeData(self, request, context):
-        """Analyze data. Called directly by downstream services."""
-        records = list(request.records) if request.records else _current_records
-        threshold = request.anomaly_threshold if request.anomaly_threshold > 0 else _current_threshold
-        return _analyze_data(records, threshold)
+        """Return cached analysis results to downstream services."""
+        with _cache_lock:
+            if _cached_response is None:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details("No data available. Service not yet triggered.")
+                return data_analyzer_pb2.AnalyzeDataResponse(
+                    success=False,
+                    message="No data available",
+                )
+            return _cached_response
 
 
 def _analyze_data(
@@ -141,8 +150,8 @@ def start_grpc_server():
 # --- HTTP Control Interface ---
 
 def execute_AnalyzeData(request: ExecuteRequest) -> ExecuteResponse:
-    """HTTP handler: Fetch data via gRPC, analyze it, return gRPC endpoint."""
-    global _current_records, _current_threshold
+    """HTTP handler: Fetch data via gRPC, analyze it, cache for downstream."""
+    global _cached_response
 
     records = []
     anomaly_threshold = request.parameters.get("anomaly_threshold", 2.0)
@@ -161,19 +170,19 @@ def execute_AnalyzeData(request: ExecuteRequest) -> ExecuteResponse:
     if not records:
         return ExecuteResponse(status="failed", error="No input data available")
 
-    # Store for downstream gRPC calls
-    _current_records = records
-    _current_threshold = anomaly_threshold
-
     logger.info(f"AnalyzeData: {len(records)} records, threshold={anomaly_threshold}")
 
     # Analyze data with verbose output
     result = _analyze_data(records, anomaly_threshold, verbose=True)
 
+    # Cache for downstream gRPC calls
+    with _cache_lock:
+        _cached_response = result
+
     if not result.success:
         return ExecuteResponse(status="failed", error=result.message)
 
-    # Return reference to gRPC endpoint where downstream can call AnalyzeData
+    # Return gRPC endpoint for downstream to fetch analyzed data
     grpc_host = os.environ.get("GRPC_HOST", "data-analyzer")
     grpc_port = os.environ.get("GRPC_PORT", "50051")
 
@@ -182,7 +191,7 @@ def execute_AnalyzeData(request: ExecuteRequest) -> ExecuteResponse:
         output=DataReference(
             protocol="grpc",
             uri=f"{grpc_host}:{grpc_port}",
-            format="AnalyzeData",  # Method name to call
+            format="AnalyzeData",
         ),
     )
 
