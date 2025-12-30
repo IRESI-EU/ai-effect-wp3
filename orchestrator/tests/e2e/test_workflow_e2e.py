@@ -276,8 +276,6 @@ class TestMultiNodeWorkflow:
                                     "container_name": "service-b",
                                     "operation_signature": {
                                         "operation_name": "ProcessData",
-                                        "input_message_name": "Input",
-                                        "output_message_name": "Output",
                                     },
                                 }
                             ],

@@ -6,7 +6,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from models.graph import ExecutionGraph, GraphNode
-from models.node import Connection, Node, OperationSignature, OperationSignatureList
+from models.node import Connection, ConnectionSignature, Node, OperationSignature, OperationSignatureList
 
 
 class BlueprintParseError(Exception):
@@ -16,15 +16,45 @@ class BlueprintParseError(Exception):
 
 
 class BlueprintOperationSignature(BaseModel):
-    """Pydantic model for operation signature in blueprint JSON."""
+    """Full operation signature with message type details.
+
+    Message names are optional since some nodes may not have inputs
+    (data generators) or outputs (data sinks).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     operation_name: str
-    input_message_name: str = ""
-    output_message_name: str = ""
+    input_message_name: str | None = None
+    output_message_name: str | None = None
     input_message_stream: bool = False
     output_message_stream: bool = False
+
+    @field_validator("operation_name")
+    @classmethod
+    def operation_name_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("operation_name is required")
+        return v
+
+    @field_validator("input_message_name", "output_message_name", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            return None
+        return v
+
+
+class BlueprintConnectionSignature(BaseModel):
+    """Connection target identifier.
+
+    AI4EU portal only exports the operation name for connections.
+    Full signature details are looked up from the target node.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    operation_name: str
 
     @field_validator("operation_name")
     @classmethod
@@ -40,7 +70,7 @@ class BlueprintConnection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     container_name: str
-    operation_signature: BlueprintOperationSignature
+    operation_signature: BlueprintConnectionSignature
 
     @field_validator("container_name")
     @classmethod
@@ -233,12 +263,8 @@ class BlueprintParser:
         connections = [
             Connection(
                 container_name=conn.container_name,
-                operation_signature=OperationSignature(
+                operation_signature=ConnectionSignature(
                     operation_name=conn.operation_signature.operation_name,
-                    input_message_name=conn.operation_signature.input_message_name,
-                    output_message_name=conn.operation_signature.output_message_name,
-                    input_message_stream=conn.operation_signature.input_message_stream,
-                    output_message_stream=conn.operation_signature.output_message_stream,
                 ),
             )
             for conn in bp_op.connected_to

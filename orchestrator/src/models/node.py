@@ -6,19 +6,29 @@ from typing import List, Optional, Dict, Any
 
 @dataclass
 class OperationSignature:
-    """Represents a gRPC operation signature."""
+    """Represents a gRPC operation signature with full message type details."""
     operation_name: str
-    input_message_name: str
-    output_message_name: str
+    input_message_name: Optional[str] = None
+    output_message_name: Optional[str] = None
     input_message_stream: bool = False
     output_message_stream: bool = False
+
+
+@dataclass
+class ConnectionSignature:
+    """Represents a connection target - only operation name is needed.
+
+    In AI4EU blueprints, connections only specify the target operation name.
+    The full signature details are looked up from the target node.
+    """
+    operation_name: str
 
 
 @dataclass
 class Connection:
     """Represents a connection to another node."""
     container_name: str
-    operation_signature: OperationSignature
+    operation_signature: ConnectionSignature
 
 
 @dataclass

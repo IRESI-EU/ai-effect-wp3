@@ -241,8 +241,6 @@ class TestWorkflowLifecycle:
                                     "container_name": "service-b",
                                     "operation_signature": {
                                         "operation_name": "Analyze",
-                                        "input_message_name": "Input",
-                                        "output_message_name": "Output",
                                     },
                                 }
                             ],

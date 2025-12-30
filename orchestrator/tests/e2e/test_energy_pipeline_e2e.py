@@ -295,8 +295,6 @@ class TestEnergyPipelineE2E:
                                     "container_name": "data_generator1",
                                     "operation_signature": {
                                         "operation_name": "GenerateData",
-                                        "input_message_name": "Request",
-                                        "output_message_name": "Response",
                                     },
                                 }
                             ],
@@ -320,8 +318,6 @@ class TestEnergyPipelineE2E:
                                     "container_name": "data_analyzer1",
                                     "operation_signature": {
                                         "operation_name": "AnalyzeData",
-                                        "input_message_name": "Request",
-                                        "output_message_name": "Response",
                                     },
                                 }
                             ],
@@ -345,8 +341,6 @@ class TestEnergyPipelineE2E:
                                     "container_name": "report_generator1",
                                     "operation_signature": {
                                         "operation_name": "GenerateReport",
-                                        "input_message_name": "Request",
-                                        "output_message_name": "Response",
                                     },
                                 }
                             ],

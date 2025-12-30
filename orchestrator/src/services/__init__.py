@@ -14,7 +14,6 @@ from services.dockerinfo_parser import (
     DockerInfoParser,
     ServiceEndpoint,
 )
-from services.grpc_service import GrpcService
 from services.log_service import SizeAndTimeRotatingHandler, configure_logging
 from services.state_store import (
     RedisStateStore,
@@ -34,7 +33,6 @@ __all__ = [
     "DockerInfoParser",
     "ExecuteRequest",
     "ExecuteResponse",
-    "GrpcService",
     "OutputResponse",
     "RedisStateStore",
     "RedisTaskQueue",
