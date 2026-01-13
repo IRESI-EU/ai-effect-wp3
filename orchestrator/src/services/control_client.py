@@ -23,7 +23,6 @@ class ExecuteRequest(BaseModel):
     workflow_id: str
     task_id: str
     inputs: list[DataReference] = []
-    parameters: dict = {}
 
     @field_validator("method")
     @classmethod
@@ -92,7 +91,6 @@ class ControlClient:
         workflow_id: str,
         task_id: str,
         inputs: list[DataReference] | None = None,
-        parameters: dict | None = None,
     ) -> ExecuteResponse:
         """Call POST /control/execute."""
         if not base_url or not base_url.strip():
@@ -103,7 +101,6 @@ class ControlClient:
             workflow_id=workflow_id,
             task_id=task_id,
             inputs=inputs or [],
-            parameters=parameters or {},
         )
 
         url = f"{base_url.rstrip('/')}/control/execute"
