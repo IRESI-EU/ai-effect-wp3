@@ -1,4 +1,14 @@
-version: '3.8'
+# TEF Services with AI-Effect Integration
+#
+# This docker-compose runs all TEF services with the AI-Effect control interface.
+# Requires the integrated-adapters and common modules to be copied to each service directory.
+#
+# Prerequisites:
+#   1. Copy common/ and integrated-adapters/ to this directory
+#   2. Modify each service's Dockerfile to copy the adapter files
+#   3. Modify each service's main.py to include the control router
+#
+# See RUNNING.md for detailed setup instructions.
 
 services:
   clickhouse-server:
@@ -27,8 +37,8 @@ services:
 
   data-provision:
     build:
-      context: ./data_provision
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: data_provision/Dockerfile
     container_name: tef-data-provision
     ports:
       - "8001:600"
@@ -40,6 +50,10 @@ services:
       - CLICKHOUSE_PORT=8123
       - CLICKHOUSE_USER=default
       - CLICKHOUSE_PASSWORD=V0ltF3@t5?store
+      - SELF_URL=http://data-provision:600
+    volumes:
+      # Mount data file - adjust path as needed
+      - ./synthetic_data_generation/real_data.csv:/app/real_data.csv:ro
     networks:
       - tef-network
     restart: unless-stopped
@@ -51,11 +65,14 @@ services:
 
   knowledge-store:
     build:
-      context: ./knowledge_store
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: knowledge_store/Dockerfile
     container_name: tef-knowledge-store
     ports:
       - "8002:8000"
+    environment:
+      - SELF_URL=http://knowledge-store:8000
+      - DATA_PROVISION_URL=http://data-provision:600
     networks:
       - tef-network
     restart: unless-stopped
@@ -67,14 +84,15 @@ services:
 
   synthetic-data:
     build:
-      context: ./synthetic_data_generation
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: synthetic_data_generation/Dockerfile
     container_name: tef-synthetic-data
     ports:
       - "8003:600"
     environment:
       - ML_GRETEL_PORT=600
       - ML_GRETEL_RELOAD=False
+      - SELF_URL=http://synthetic-data:600
     volumes:
       - synthetic_models:/app/models
     networks:
@@ -94,5 +112,5 @@ volumes:
 
 networks:
   tef-network:
-    name: tef-network
+    name: ai-effect-services
     driver: bridge

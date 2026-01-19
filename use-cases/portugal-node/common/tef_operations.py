@@ -295,7 +295,16 @@ def _poll_training(task_id: str, username: str, model_name: str) -> None:
             if response.status_code == 200:
                 info = response.json()
 
-                if info.get("trained", False) or info.get("status") == "completed":
+                # Check for completion: trained flag, status field, or epoch count
+                epoch = info.get("epoch", 0)
+                total_epochs = info.get("total_epochs", 0)
+                is_complete = (
+                    info.get("trained", False)
+                    or info.get("status") == "completed"
+                    or (total_epochs > 0 and epoch >= total_epochs)
+                )
+
+                if is_complete:
                     # Return model info as inline (small metadata, not data)
                     model_info = json.dumps({
                         "username": username,

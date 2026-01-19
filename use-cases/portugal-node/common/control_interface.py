@@ -3,6 +3,8 @@
 This module provides the FastAPI components for the AI-Effect control interface.
 Supports both integrated (router) and sidecar (standalone app) deployment approaches.
 
+NOTE: Uses `from __future__ import annotations` for Python 3.9 compatibility.
+
 Usage (Integrated - add router to existing FastAPI app):
     from common import create_control_router
 
@@ -14,6 +16,8 @@ Usage (Sidecar - standalone service):
     if __name__ == "__main__":
         run(execute_handlers, "Service Name")
 """
+
+from __future__ import annotations
 
 import logging
 import os
@@ -95,7 +99,7 @@ def create_control_router(
     Returns:
         FastAPI APIRouter with /control/* endpoints.
     """
-    router = APIRouter(prefix="/control")
+    router = APIRouter()
 
     @router.post("/execute", response_model=ExecuteResponse)
     def execute(request: ExecuteRequest) -> ExecuteResponse:
@@ -186,9 +190,9 @@ def create_app(
     """
     app = FastAPI(title=f"{service_name} Adapter", version="1.0.0")
 
-    # Include control router
+    # Include control router with /control prefix
     router = create_control_router(execute_handlers)
-    app.include_router(router)
+    app.include_router(router, prefix="/control")
 
     @app.get("/health")
     def health() -> dict:

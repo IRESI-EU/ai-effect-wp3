@@ -1,5 +1,7 @@
 """Thread-safe task state manager for AI-Effect control interface.
 
+NOTE: Uses `from __future__ import annotations` for Python 3.9 compatibility.
+
 This module provides a TaskManager class for tracking async task state and data storage.
 Used by both integrated and sidecar adapter approaches.
 
@@ -24,6 +26,8 @@ Usage:
     task_manager.store_data(task_id, csv_data, "csv")
     data, format = task_manager.get_data(task_id)
 """
+
+from __future__ import annotations
 
 import threading
 from typing import Any

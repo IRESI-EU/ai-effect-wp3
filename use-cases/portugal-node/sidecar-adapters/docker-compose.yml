@@ -3,8 +3,12 @@
 # These adapters expose the AI-Effect control interface and call the TEF service APIs.
 # Run alongside the TEF services docker-compose.
 #
+# Prerequisites:
+#   - TEF services running on ai-effect-services network
+#   - Data file available for data-provision-adapter (adjust volume mount path)
+#
 # Usage:
-#   docker compose up -d
+#   docker compose up -d --build
 
 services:
   knowledge-store-adapter:
@@ -43,17 +47,13 @@ services:
       - DATA_PROVISION_URL=http://data-provision:600
       - SELF_URL=http://data-provision-adapter:8080
     volumes:
-      - tef-data:/data:ro
+      # Mount data file - adjust path to your data location
+      - ../synthetic_data_generation/real_data.csv:/app/real_data.csv:ro
     networks:
       - tef-network
     restart: unless-stopped
 
 networks:
   tef-network:
+    name: ai-effect-services
     external: true
-    name: tef-network
-
-volumes:
-  tef-data:
-    external: true
-    name: tef-synthetic-models

@@ -44,14 +44,28 @@ curl -X POST http://localhost:18000/workflows \
   }'
 ```
 
-## Connecting to Service Networks
+## Service Network
 
-When services run on a separate Docker network, connect the workers:
+Workers automatically join the `ai-effect-services` network to reach external services.
+
+**Startup order:** Services must start first (they create the network). If you need to start orchestrator first, create the network manually:
 
 ```bash
-docker network connect <service-network> orchestrator-worker-1
-docker network connect <service-network> orchestrator-worker-2
-docker network connect <service-network> orchestrator-worker-3
+docker network create ai-effect-services
+```
+
+Services should use this network name in their docker-compose:
+
+```yaml
+networks:
+  my-network:
+    name: ai-effect-services    # Must match this name
+    driver: bridge
+```
+
+To verify connectivity:
+```bash
+docker network inspect ai-effect-services --format '{{range .Containers}}{{.Name}} {{end}}'
 ```
 
 ## Logs
