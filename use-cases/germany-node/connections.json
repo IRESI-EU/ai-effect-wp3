@@ -1,0 +1,16 @@
+{
+  "pipeline": {
+    "connections": [
+      {
+        "from_service": "data-provider",
+        "to_service": "villas-chronics",
+        "to_method": "GenerateChronics"
+      },
+      {
+        "from_service": "villas-chronics",
+        "to_service": "output-formatter",
+        "to_method": "FormatOutput"
+      }
+    ]
+  }
+}

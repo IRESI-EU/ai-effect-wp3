@@ -18,43 +18,80 @@ import yaml
 
 
 class OnboardingExportGenerator:
-    def __init__(self, use_case_dir, output_dir):
+    def __init__(self, use_case_dir, output_dir, local=False):
         self.use_case_dir = Path(use_case_dir)
         self.output_dir = Path(output_dir)
         self.services_dir = self.use_case_dir / 'services'
-        
-    def load_docker_compose_service_names(self):
-        """Load service names from docker-compose.yml to match Docker's image naming"""
-        compose_file = self.use_case_dir / 'docker-compose.yml'
+        self.local = local
+        self._compose_config = None
 
+    def _load_compose_config(self):
+        """Load and cache docker-compose.yml"""
+        if self._compose_config is not None:
+            return self._compose_config
+
+        compose_file = self.use_case_dir / 'docker-compose.yml'
         if not compose_file.exists():
-            print(f"Warning: No docker-compose.yml found, using directory names for services")
-            return {}
+            print(f"Warning: No docker-compose.yml found")
+            self._compose_config = {}
+            return self._compose_config
 
         try:
             with open(compose_file, 'r') as f:
-                compose_config = yaml.safe_load(f)
-
-            # Get service names from docker-compose.yml
-            # Map: dockerfile path -> service name
-            service_mapping = {}
-            if 'services' in compose_config:
-                for service_name, service_config in compose_config['services'].items():
-                    if 'build' in service_config:
-                        # Extract dockerfile path to determine which service this is
-                        build_config = service_config['build']
-                        if isinstance(build_config, dict) and 'dockerfile' in build_config:
-                            dockerfile = build_config['dockerfile']
-                            # Extract service directory name from dockerfile path
-                            # e.g., "services/data_generator/Dockerfile" -> "data_generator"
-                            if 'services/' in dockerfile:
-                                dir_name = dockerfile.split('services/')[1].split('/')[0]
-                                service_mapping[dir_name] = service_name
-
-            return service_mapping
+                self._compose_config = yaml.safe_load(f) or {}
         except Exception as e:
             print(f"Warning: Failed to parse docker-compose.yml: {e}")
+            self._compose_config = {}
+
+        return self._compose_config
+
+    def load_docker_compose_service_names(self):
+        """Load service names from docker-compose.yml to match Docker's image naming"""
+        compose_config = self._load_compose_config()
+        if not compose_config:
             return {}
+
+        # Get service names from docker-compose.yml
+        # Map: dockerfile path -> service name
+        service_mapping = {}
+        if 'services' in compose_config:
+            for service_name, service_config in compose_config['services'].items():
+                if 'build' in service_config:
+                    # Extract dockerfile path to determine which service this is
+                    build_config = service_config['build']
+                    if isinstance(build_config, dict) and 'dockerfile' in build_config:
+                        dockerfile = build_config['dockerfile']
+                        # Extract service directory name from dockerfile path
+                        # e.g., "services/data_generator/Dockerfile" -> "data_generator"
+                        if 'services/' in dockerfile:
+                            dir_name = dockerfile.split('services/')[1].split('/')[0]
+                            service_mapping[dir_name] = service_name
+
+        return service_mapping
+
+    def load_docker_compose_host_ports(self):
+        """Load host port mappings from docker-compose.yml.
+
+        Returns a dict mapping compose service name to host port, extracted
+        from the ports list (e.g. "18091:8080" -> "18091").
+        """
+        compose_config = self._load_compose_config()
+        if not compose_config:
+            return {}
+
+        port_mapping = {}
+        for service_name, service_config in compose_config.get('services', {}).items():
+            ports = service_config.get('ports', [])
+            if ports:
+                # Take the first port mapping: "host:container" or just "container"
+                port_str = str(ports[0])
+                if ':' in port_str:
+                    host_port = port_str.split(':')[0].strip('"').strip("'")
+                else:
+                    host_port = port_str
+                port_mapping[service_name] = host_port
+
+        return port_mapping
 
     def scan_services(self):
         """Scan services directory and extract service information"""
@@ -265,18 +302,31 @@ class OnboardingExportGenerator:
         return blueprint
     
     def generate_dockerinfo(self, services, internal_port=50051):
-        """Generate dockerinfo.json in platform format
+        """Generate dockerinfo.json.
 
-        Note: Uses internal service port (all services listen on same internal port)
-        External port mapping is handled by docker-compose.yml
+        In local mode (--local), uses host.docker.internal with host port
+        mappings from docker-compose.yml so the orchestrator can reach
+        services from outside the Docker network.
+
+        In default mode, uses internal Docker DNS names and internal port
+        for platform deployment.
         """
+        host_ports = self.load_docker_compose_host_ports() if self.local else {}
+
         docker_info_list = []
 
         for service in services:
+            if self.local and service['name'] in host_ports:
+                ip_address = "host.docker.internal"
+                port = host_ports[service['name']]
+            else:
+                ip_address = service['container_name']
+                port = str(internal_port)
+
             docker_info = {
                 "container_name": service['container_name'],
-                "ip_address": service['container_name'],  # Service name for Docker DNS
-                "port": str(internal_port)  # Internal service port (all use same port)
+                "ip_address": ip_address,
+                "port": port,
             }
             docker_info_list.append(docker_info)
 
@@ -362,7 +412,9 @@ def main():
     parser.add_argument('use_case_dir', help='Path to use case directory containing services/')
     parser.add_argument('output_dir', help='Output directory for onboarding export')
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing output directory')
-    
+    parser.add_argument('--local', action='store_true',
+                        help='Generate dockerinfo for local testing (host.docker.internal + host ports from docker-compose.yml)')
+
     args = parser.parse_args()
     
     # Verify input directory exists
@@ -376,7 +428,7 @@ def main():
         return 1
     
     # Generate export
-    generator = OnboardingExportGenerator(args.use_case_dir, args.output_dir)
+    generator = OnboardingExportGenerator(args.use_case_dir, args.output_dir, local=args.local)
     try:
         generator.generate_export()
         

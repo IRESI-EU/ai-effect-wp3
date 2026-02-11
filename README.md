@@ -27,7 +27,8 @@ ai-effect-wp3/
 │   │   └── protobuf_based/        # HTTP control + gRPC data
 │   ├── file_based_energy_pipeline/    # Example pipeline
 │   ├── protobuf_based_energy_pipeline/ # Example with gRPC
-│   └── portugal-node/             # TEF third-party integration
+│   ├── portugal-node/             # TEF third-party integration
+│   └── germany-node/             # VILLASnode chronics generation
 ├── scripts/                       # Build and generation tools
 └── use-cases-platform/            # Generated deployment packages
 ```
@@ -158,6 +159,24 @@ Demonstrates:
 
 See `use-cases/portugal-node/README.md` for details.
 
+### germany-node (VILLASnode Chronics)
+
+Converts pandapower timeseries data into Grid2Op chronics using VILLASnode:
+
+```
+ProvideData → GenerateChronics → FormatOutput
+                    │
+             VILLASnode (REST API)
+```
+
+Demonstrates:
+- **Long-running sidecar** - VILLASnode controlled via REST API (not orchestrator-managed)
+- **Async task handling** - Concurrent handler with progress polling
+- **Config template** - Dynamic VILLASnode config generation per workflow
+- **Shared volume** - File-based data exchange between services
+
+See `use-cases/germany-node/README.md` for details.
+
 ## Configuration Files
 
 ### blueprint.json
@@ -260,6 +279,12 @@ python scripts/build-script-generator.py use-cases/my_pipeline
 python scripts/onboarding-export-generator.py \
   use-cases/my_pipeline \
   use-cases-platform/my_pipeline
+
+# Or for local testing (uses host.docker.internal + host ports)
+python scripts/onboarding-export-generator.py \
+  use-cases/my_pipeline \
+  use-cases/my_pipeline/export \
+  --local
 
 # Generate docker-compose
 python scripts/docker-compose-generator.py \

@@ -1,0 +1,51 @@
+services:
+  data-provider:
+    build:
+      context: .
+      dockerfile: services/data_provider/Dockerfile
+    ports:
+      - "18091:8080"
+    volumes:
+      - ./data:/data:ro
+      - shared-data:/shared
+    environment:
+      - PORT=8080
+
+  villas-chronics:
+    build:
+      context: .
+      dockerfile: services/villas_chronics/Dockerfile
+    ports:
+      - "18092:8080"
+    volumes:
+      - shared-data:/shared
+    environment:
+      - PORT=8080
+      - VILLAS_NODE_URL=http://villas-node:80
+
+  villas-node:
+    image: registry.git.rwth-aachen.de/acs/public/villas/node:hook-timeseries-chronix-conversion
+    privileged: true
+    volumes:
+      - shared-data:/shared
+    # Start idle — adapter will push config via REST API restart endpoint
+    command: node
+
+  output-formatter:
+    build:
+      context: .
+      dockerfile: services/output_formatter/Dockerfile
+    ports:
+      - "18093:8080"
+    volumes:
+      - shared-data:/shared
+    environment:
+      - PORT=8080
+
+volumes:
+  shared-data:
+
+networks:
+  default:
+    name: ai-effect-services
+    external: true
