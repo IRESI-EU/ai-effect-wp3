@@ -28,11 +28,6 @@ portugal-node/
 │   ├── task_manager.py            # Thread-safe task state manager
 │   ├── control_interface.py       # FastAPI control endpoints
 │   └── tef_operations.py          # TEF operation handlers
-├── integrated-adapters/           # For embedding in TEF services
-│   ├── control_router.py
-│   ├── data_provision_adapter.py
-│   ├── knowledge_store_adapter.py
-│   └── synthetic_data_adapter.py
 ├── sidecar-adapters/              # Standalone adapter services
 │   ├── docker-compose.yml
 │   ├── data_provision/
@@ -45,17 +40,13 @@ portugal-node/
 
 ## Integration Approaches
 
-### Option 1: Integrated Adapters
+### Option 1: Integrated Approach
 
-Embed adapter modules directly in existing FastAPI applications.
+Import the `common` module directly in existing FastAPI applications. The `common/` directory is copied into the build context and each service imports from it.
 
 ```python
-from fastapi import FastAPI
 from common import create_control_router, data_provision_handlers
 
-app = FastAPI()
-
-# Add control interface with /control prefix
 app.include_router(
     create_control_router(data_provision_handlers),
     prefix="/control"

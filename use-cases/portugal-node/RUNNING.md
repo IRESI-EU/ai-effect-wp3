@@ -34,9 +34,8 @@ cp -r <path-to-tef-services>/data_provision use-cases-platform/tef-integrated/
 cp -r <path-to-tef-services>/knowledge_store use-cases-platform/tef-integrated/
 cp -r <path-to-tef-services>/synthetic_data_generation use-cases-platform/tef-integrated/
 
-# Copy common module and adapters
+# Copy common module
 cp -r use-cases/portugal-node/common use-cases-platform/tef-integrated/
-cp -r use-cases/portugal-node/integrated-adapters use-cases-platform/tef-integrated/
 
 # Copy configuration files
 cp use-cases/portugal-node/blueprint.json use-cases-platform/tef-integrated/
@@ -44,17 +43,15 @@ cp use-cases/portugal-node/dockerinfo-integrated.json use-cases-platform/tef-int
 cp use-cases/portugal-node/docker-compose-all.yml use-cases-platform/tef-integrated/
 ```
 
-Modify each TEF service's Dockerfile to copy the adapter files. Add these lines before the CMD instruction:
+Modify each TEF service's Dockerfile to copy the common module. Add this line before the CMD instruction:
 
 ```dockerfile
-# Copy AI-Effect adapter files
 COPY common/ ./common/
-COPY integrated-adapters/ ./integrated-adapters/
 ```
 
 For Python 3.9 services (synthetic_data_generation), also add `eval_type_backport` to the pip install:
 ```dockerfile
-RUN pip install ... httpx eval_type_backport
+RUN pip install --no-cache-dir httpx eval_type_backport
 ```
 
 Then add the following to each TEF service's `main.py` after the FastAPI app is created:
@@ -62,11 +59,10 @@ Then add the following to each TEF service's `main.py` after the FastAPI app is 
 ```python
 # --- AI-Effect Control Interface ---
 try:
-    from control_router import create_control_router
-    from data_provision_adapter import execute_handlers  # or knowledge_store_adapter, synthetic_data_adapter
+    from common import create_control_router, data_provision_handlers
 
     app.include_router(
-        create_control_router(execute_handlers),
+        create_control_router(data_provision_handlers),
         prefix="/control",
     )
 except ImportError as e:
@@ -74,10 +70,10 @@ except ImportError as e:
     logging.warning(f"AI-Effect control interface not available: {e}")
 ```
 
-Use the appropriate adapter import for each service:
-- `data_provision/main.py`: `from data_provision_adapter import execute_handlers`
-- `knowledge_store/src/main.py`: `from knowledge_store_adapter import execute_handlers`
-- `synthetic_data_generation/main.py`: `from synthetic_data_adapter import execute_handlers`
+Use the appropriate handler import for each service:
+- `data_provision/main.py`: `from common import create_control_router, data_provision_handlers`
+- `knowledge_store/src/main.py`: `from common import create_control_router, knowledge_store_handlers`
+- `synthetic_data_generation/main.py`: `from common import create_control_router, synthetic_data_handlers`
 
 ### Step 4: Set Up Sidecar Approach
 

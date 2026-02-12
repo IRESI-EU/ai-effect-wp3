@@ -1,11 +1,11 @@
 # TEF Services with AI-Effect Integration
 #
 # This docker-compose runs all TEF services with the AI-Effect control interface.
-# Requires the integrated-adapters and common modules to be copied to each service directory.
+# Uses root build context (context: .) so each Dockerfile can COPY common/ directly.
 #
 # Prerequisites:
-#   1. Copy common/ and integrated-adapters/ to this directory
-#   2. Modify each service's Dockerfile to copy the adapter files
+#   1. Copy common/ to this directory
+#   2. Modify each service's Dockerfile to COPY common/ ./common/
 #   3. Modify each service's main.py to include the control router
 #
 # See RUNNING.md for detailed setup instructions.
