@@ -187,8 +187,28 @@ Defines workflow topology:
 {
   "pipeline_id": "my-pipeline",
   "name": "My Pipeline",
-  "nodes": [...],
-  "operation_signature_list": [...]
+  "nodes": [
+    {
+      "container_name": "my_service",
+      "node_type": "DataSource",
+      "operation_signature_list": [
+        {
+          "operation_signature": {
+            "operation_name": "LoadData",
+            "output_message_name": "LoadDataResponse"
+          },
+          "connected_to": [
+            {
+              "container_name": "next_service",
+              "operation_signature": {
+                "operation_name": "ProcessData"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -271,24 +291,41 @@ pytest tests/
 
 Use the scripts to generate deployment packages:
 
-```bash
-# Generate build script
-python scripts/build-script-generator.py use-cases/my_pipeline
+**1. Generate build script** — Reads `docker-compose.yml` from a use case directory and generates a `build_and_tag.sh` script that builds all service images and tags them with `:latest` for export compatibility.
 
-# Create platform export
+```bash
+python scripts/build-script-generator.py use-cases/my_pipeline
+```
+
+**2. Create platform export** — Scans the `services/` directory for proto files, reads `connections.json` for pipeline topology, and generates a complete onboarding package: `blueprint.json`, `dockerinfo.json`, `generation_metadata.json`, and copies proto files into `microservice/`.
+
+```bash
 python scripts/onboarding-export-generator.py \
   use-cases/my_pipeline \
   use-cases-platform/my_pipeline
+```
 
-# Or for local testing (uses host.docker.internal + host ports)
+By default, `dockerinfo.json` uses internal Docker DNS names (container names) and internal ports. This works when services and orchestrator workers share a Docker network (e.g., `ai-effect-services`).
+
+Use `--local` when services don't join the shared orchestrator network — it generates dockerinfo with `host.docker.internal` and host port mappings from `docker-compose.yml`, so orchestrator workers can reach services through the host:
+
+```bash
 python scripts/onboarding-export-generator.py \
   use-cases/my_pipeline \
   use-cases/my_pipeline/export \
   --local
+```
 
-# Generate docker-compose
+**3. Generate docker-compose** — Reads `blueprint.json` and `dockerinfo.json` from an onboarding package and generates a `docker-compose.yml` with all pipeline services, port mappings, and networking. Optionally includes the orchestrator as a service.
+
+```bash
 python scripts/docker-compose-generator.py \
   use-cases-platform/my_pipeline
+
+# Include orchestrator in the deployment
+python scripts/docker-compose-generator.py \
+  use-cases-platform/my_pipeline \
+  --orchestrator-path orchestrator
 ```
 
 ## Third-Party Integration
