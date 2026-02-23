@@ -35,7 +35,35 @@ ai-effect-wp3/
 
 ## Quick Start
 
-### 1. Start the Orchestrator
+### Using the convenience script
+
+The fastest way to get started — starts the shared network, orchestrator, and a use case:
+
+```bash
+./start.sh file_based_energy_pipeline
+```
+
+Then submit a workflow:
+```bash
+cd use-cases/file_based_energy_pipeline && ./submit-workflow.sh
+```
+
+Stop everything:
+```bash
+./stop.sh file_based_energy_pipeline
+```
+
+### Manual setup
+
+#### 1. Create the shared network
+
+All services and orchestrator workers communicate over the `ai-effect-services` Docker network:
+
+```bash
+docker network create ai-effect-services
+```
+
+#### 2. Start the Orchestrator
 
 ```bash
 cd orchestrator
@@ -45,9 +73,64 @@ docker compose up -d
 This starts:
 - **Redis** - State management (port 16379)
 - **API** - REST endpoint (port 18000)
-- **Workers** - 3 worker replicas for task execution
+- **Workers** - 3 worker replicas for task execution (joined to `ai-effect-services` network)
 
-### 2. Deploy Services
+#### 3. Start a use case
+
+```bash
+cd use-cases/file_based_energy_pipeline
+./start.sh
+```
+
+The start scripts auto-create the network if it doesn't exist.
+
+#### 4. Submit a Workflow
+
+```bash
+./submit-workflow.sh
+```
+
+Or manually:
+```bash
+curl -s -X POST http://localhost:18000/workflows \
+  -H "Content-Type: application/json" \
+  -d '{
+    "blueprint": {...},
+    "dockerinfo": {...},
+    "inputs": [{"protocol": "inline", "uri": "...", "format": "json"}]
+  }' | jq .
+```
+
+#### 5. Monitor Progress
+
+```bash
+# Check workflow status
+curl -s http://localhost:18000/workflows/{workflow_id} | jq .
+
+# Check individual tasks
+curl -s http://localhost:18000/workflows/{workflow_id}/tasks | jq .
+```
+
+## Networking
+
+All services and orchestrator workers share a single Docker network called `ai-effect-services`. This allows:
+
+- Orchestrator workers to reach services by **Docker DNS name** (e.g., `data-generator:8080`)
+- Services to communicate directly with each other when needed (e.g., gRPC data exchange)
+- No reliance on `host.docker.internal` or host-mapped ports for inter-service communication
+
+Each use case's `docker-compose.yml` declares this as an external network:
+```yaml
+networks:
+  default:
+    name: ai-effect-services
+    external: true
+```
+
+The network is auto-created by `start.sh` scripts. To verify all containers are connected:
+```bash
+docker network inspect ai-effect-services --format '{{range .Containers}}{{.Name}} {{end}}'
+```
 
 Services must implement the AI-Effect Control Interface:
 
@@ -56,28 +139,6 @@ POST /control/execute        - Execute an operation
 GET  /control/status/{id}    - Check task status
 GET  /control/output/{id}    - Get task output
 GET  /health                 - Health check
-```
-
-### 3. Submit a Workflow
-
-```bash
-curl -X POST http://localhost:18000/workflows \
-  -H "Content-Type: application/json" \
-  -d '{
-    "blueprint": {...},
-    "dockerinfo": {...},
-    "inputs": [{"protocol": "inline", "uri": "...", "format": "json"}]
-  }'
-```
-
-### 4. Monitor Progress
-
-```bash
-# Check workflow status
-curl http://localhost:18000/workflows/{workflow_id}
-
-# Check individual tasks
-curl http://localhost:18000/workflows/{workflow_id}/tasks
 ```
 
 ## Architecture
@@ -305,7 +366,7 @@ python scripts/onboarding-export-generator.py \
   use-cases-platform/my_pipeline
 ```
 
-By default, `dockerinfo.json` uses internal Docker DNS names (container names) and internal ports. This works when services and orchestrator workers share a Docker network (e.g., `ai-effect-services`).
+By default, `dockerinfo.json` uses docker-compose service names (which resolve via Docker DNS on the shared `ai-effect-services` network) and internal port 8080 (the HTTP control interface).
 
 Use `--local` when services don't join the shared orchestrator network — it generates dockerinfo with `host.docker.internal` and host port mappings from `docker-compose.yml`, so orchestrator workers can reach services through the host:
 

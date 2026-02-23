@@ -40,3 +40,8 @@ services:
       - ./data:/app/data
     environment:
       - PORT=8080
+
+networks:
+  default:
+    name: ai-effect-services
+    external: true

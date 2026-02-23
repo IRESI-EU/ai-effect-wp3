@@ -61,10 +61,9 @@ germany-node/
 ├── export/                         # Generated blueprint + dockerinfo
 │   ├── blueprint.json
 │   └── dockerinfo.json
-├── scripts/
-│   ├── start.sh
-│   ├── stop.sh
-│   └── submit-workflow.sh
+├── start.sh                       # Start services
+├── stop.sh                        # Stop services
+├── submit-workflow.sh             # Submit workflow to orchestrator
 ├── data/                           # Input data (mounted read-only)
 │   ├── loads/                      # Load CSV files (*_converted.csv)
 │   ├── sgens/                      # Static generator CSV files

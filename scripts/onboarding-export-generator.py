@@ -301,15 +301,16 @@ class OnboardingExportGenerator:
         
         return blueprint
     
-    def generate_dockerinfo(self, services, internal_port=50051):
+    def generate_dockerinfo(self, services, internal_port=8080):
         """Generate dockerinfo.json.
 
         In local mode (--local), uses host.docker.internal with host port
         mappings from docker-compose.yml so the orchestrator can reach
         services from outside the Docker network.
 
-        In default mode, uses internal Docker DNS names and internal port
-        for platform deployment.
+        In default mode, uses docker-compose service names (which resolve
+        via Docker DNS on the shared network) and internal port 8080
+        (the HTTP control interface).
         """
         host_ports = self.load_docker_compose_host_ports() if self.local else {}
 
@@ -320,7 +321,7 @@ class OnboardingExportGenerator:
                 ip_address = "host.docker.internal"
                 port = host_ports[service['name']]
             else:
-                ip_address = service['container_name']
+                ip_address = service['name']
                 port = str(internal_port)
 
             docker_info = {

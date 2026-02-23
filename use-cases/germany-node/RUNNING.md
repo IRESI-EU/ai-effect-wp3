@@ -11,7 +11,7 @@ Step-by-step instructions for running the chronics generation pipeline with the 
 
 ## Step 1: Create Docker Network
 
-The orchestrator and services communicate over a shared Docker network. If not already created:
+The orchestrator and services communicate over a shared Docker network. The `start.sh` scripts auto-create it, but you can also create it manually:
 
 ```bash
 docker network create ai-effect-services
@@ -26,7 +26,7 @@ docker compose up -d
 
 Verify:
 ```bash
-curl -s http://localhost:18000/health
+curl -s http://localhost:18000/health | jq .
 ```
 
 ## Step 3: Start Germany Node Services
@@ -50,9 +50,9 @@ docker compose ps
 ## Step 4: Verify Health
 
 ```bash
-curl -s http://localhost:18091/health
-curl -s http://localhost:18092/health
-curl -s http://localhost:18093/health
+curl -s http://localhost:18091/health | jq .
+curl -s http://localhost:18092/health | jq .
+curl -s http://localhost:18093/health | jq .
 ```
 
 All should return `{"status":"ok"}`.
@@ -70,17 +70,18 @@ If `export/blueprint.json` and `export/dockerinfo.json` don't exist yet:
 cd ../..  # back to ai-effect-wp3 root
 python scripts/onboarding-export-generator.py \
   use-cases/germany-node \
-  use-cases/germany-node/export \
-  --local
+  use-cases/germany-node/export
 ```
 
-The `--local` flag generates dockerinfo with `host.docker.internal` and host port mappings from docker-compose.yml.
+This generates dockerinfo with Docker DNS service names and internal port 8080, which works on the shared `ai-effect-services` network.
+
+For local testing without the shared network, add `--local` to use `host.docker.internal` with host port mappings instead.
 
 ## Step 6: Submit Workflow
 
 ```bash
 cd use-cases/germany-node
-bash scripts/submit-workflow.sh
+./submit-workflow.sh
 ```
 
 Or manually:
@@ -91,7 +92,7 @@ curl -s -X POST http://localhost:18000/workflows \
   -d "{
   \"blueprint\": $(cat export/blueprint.json),
   \"dockerinfo\": $(cat export/dockerinfo.json)
-}"
+}" | jq .
 ```
 
 Save the returned `workflow_id`.
@@ -136,7 +137,7 @@ Expected output files:
 ```bash
 curl -s -X POST http://localhost:18091/control/execute \
   -H "Content-Type: application/json" \
-  -d '{"method":"ProvideData","workflow_id":"test-001","task_id":"t1","inputs":[]}'
+  -d '{"method":"ProvideData","workflow_id":"test-001","task_id":"t1","inputs":[]}' | jq .
 ```
 
 Verify:
@@ -151,17 +152,17 @@ docker compose exec data-provider cat /shared/test-001/manifest.json | python3 -
 curl -s -X POST http://localhost:18092/control/execute \
   -H "Content-Type: application/json" \
   -d '{"method":"GenerateChronics","workflow_id":"test-001","task_id":"t2",
-       "inputs":[{"protocol":"file","uri":"/shared/test-001","format":"json"}]}'
+       "inputs":[{"protocol":"file","uri":"/shared/test-001","format":"json"}]}' | jq .
 ```
 
 This returns `{"status":"running","task_id":"t2"}`. Poll for completion:
 ```bash
-curl -s http://localhost:18092/control/status/t2
+curl -s http://localhost:18092/control/status/t2 | jq .
 ```
 
 Once complete, get output:
 ```bash
-curl -s http://localhost:18092/control/output/t2
+curl -s http://localhost:18092/control/output/t2 | jq .
 ```
 
 ### Test output_formatter
@@ -170,7 +171,7 @@ curl -s http://localhost:18092/control/output/t2
 curl -s -X POST http://localhost:18093/control/execute \
   -H "Content-Type: application/json" \
   -d '{"method":"FormatOutput","workflow_id":"test-001","task_id":"t3",
-       "inputs":[{"protocol":"file","uri":"/shared/test-001/chronics_output","format":"csv"}]}'
+       "inputs":[{"protocol":"file","uri":"/shared/test-001/chronics_output","format":"csv"}]}' | jq .
 ```
 
 ## Troubleshooting

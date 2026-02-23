@@ -33,6 +33,9 @@ portugal-node/
 │   ├── data_provision/
 │   ├── knowledge_store/
 │   └── synthetic_data/
+├── start.sh                       # Start sidecar adapters
+├── stop.sh                        # Stop sidecar adapters
+├── submit-workflow.sh             # Submit workflow to orchestrator
 ├── blueprint.json
 ├── dockerinfo-integrated.json
 └── dockerinfo-sidecar.json
@@ -60,11 +63,10 @@ When to use:
 
 ### Option 2: Sidecar Adapters
 
-Standalone adapter services that run alongside TEF services.
+Standalone adapter services that run alongside TEF services. They join the `ai-effect-services` Docker network so orchestrator workers can reach them by DNS name.
 
 ```bash
-cd sidecar-adapters
-docker compose up -d --build
+./start.sh
 ```
 
 Adapter ports:

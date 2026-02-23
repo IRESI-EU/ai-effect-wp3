@@ -2,18 +2,18 @@
     "docker_info_list": [
         {
             "container_name": "data_provider1",
-            "ip_address": "host.docker.internal",
-            "port": "18091"
+            "ip_address": "data-provider",
+            "port": "8080"
         },
         {
             "container_name": "output_formatter1",
-            "ip_address": "host.docker.internal",
-            "port": "18093"
+            "ip_address": "output-formatter",
+            "port": "8080"
         },
         {
             "container_name": "villas_chronics1",
-            "ip_address": "host.docker.internal",
-            "port": "18092"
+            "ip_address": "villas-chronics",
+            "port": "8080"
         }
     ]
 }

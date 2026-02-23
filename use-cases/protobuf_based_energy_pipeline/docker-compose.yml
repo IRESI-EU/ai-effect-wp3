@@ -43,3 +43,8 @@ services:
       - PORT=8080
       - GRPC_PORT=50051
       - GRPC_HOST=report-generator
+
+networks:
+  default:
+    name: ai-effect-services
+    external: true

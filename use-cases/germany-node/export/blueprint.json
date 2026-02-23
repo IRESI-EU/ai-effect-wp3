@@ -70,8 +70,8 @@
         }
     ],
     "name": "Germany-Node",
-    "pipeline_id": "bf6f30ee-68ef-4b87-8abb-f9692a4b6203",
-    "creation_date": "2026-02-10 22:47:27.984717",
+    "pipeline_id": "6aa94d50-decc-41ff-926b-67d47f9fdbc5",
+    "creation_date": "2026-02-23 21:34:24.967366",
     "type": "pipeline-topology/v2",
     "version": "2.0"
 }

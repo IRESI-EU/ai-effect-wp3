@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
+
+docker network create ai-effect-services 2>/dev/null || true
 
 echo "Building and starting Germany node pipeline..."
 docker compose up -d --build

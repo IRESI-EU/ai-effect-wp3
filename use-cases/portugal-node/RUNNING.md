@@ -142,7 +142,7 @@ curl -s -X POST http://localhost:18000/workflows \
     \"uri\": \"$(echo '{\"file_path\": \"/app/real_data.csv\", \"max_rows\": 200, \"rename_columns\": {\"datetime\": \"timestamp\"}}' | base64 -w0)\",
     \"format\": \"json\"
   }]
-}"
+}" | jq .
 ```
 
 ### Step 4: Monitor Workflow
@@ -183,8 +183,8 @@ docker compose -f docker-compose-all.yml up -d --build
 ### Step 2: Start Sidecar Adapters
 
 ```bash
-cd use-cases-platform/tef-sidecar/sidecar-adapters
-docker compose up -d --build
+cd use-cases/portugal-node
+./start.sh
 ```
 
 Verify adapters:
@@ -202,9 +202,9 @@ docker compose up -d
 ### Step 4: Verify Health
 
 ```bash
-curl -s http://localhost:18103/health
-curl -s http://localhost:18101/health
-curl -s http://localhost:18102/health
+curl -s http://localhost:18103/health | jq .
+curl -s http://localhost:18101/health | jq .
+curl -s http://localhost:18102/health | jq .
 ```
 
 All should return `{"status":"ok"}`.
@@ -224,7 +224,7 @@ curl -s -X POST http://localhost:18000/workflows \
     \"uri\": \"$(echo '{\"file_path\": \"/app/real_data.csv\", \"max_rows\": 200, \"rename_columns\": {\"datetime\": \"timestamp\"}}' | base64 -w0)\",
     \"format\": \"json\"
   }]
-}"
+}" | jq .
 ```
 
 ### Step 6: Verify Results
@@ -348,8 +348,8 @@ docker logs orchestrator-worker-1 --tail 50
 
 ```bash
 # Stop sidecar adapters
-cd use-cases-platform/tef-sidecar/sidecar-adapters
-docker compose down
+cd use-cases/portugal-node
+./stop.sh
 
 # Stop TEF services
 cd use-cases-platform/tef-integrated
@@ -358,7 +358,9 @@ docker compose -f docker-compose-all.yml down
 # Stop orchestrator
 cd orchestrator
 docker compose down
+```
 
-# Remove volumes (deletes trained models)
-docker volume rm tef-clickhouse-data tef-synthetic-models
+Or use the convenience script from the project root:
+```bash
+./stop.sh portugal-node
 ```

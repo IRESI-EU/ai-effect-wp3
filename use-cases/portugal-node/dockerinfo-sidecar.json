@@ -2,23 +2,23 @@
   "docker_info_list": [
     {
       "container_name": "data_loader",
-      "ip_address": "host.docker.internal",
-      "port": "18103"
+      "ip_address": "data-provision-adapter",
+      "port": "8080"
     },
     {
       "container_name": "feature_engineer",
-      "ip_address": "host.docker.internal",
-      "port": "18101"
+      "ip_address": "knowledge-store-adapter",
+      "port": "8080"
     },
     {
       "container_name": "model_trainer",
-      "ip_address": "host.docker.internal",
-      "port": "18102"
+      "ip_address": "synthetic-data-adapter",
+      "port": "8080"
     },
     {
       "container_name": "data_generator",
-      "ip_address": "host.docker.internal",
-      "port": "18102"
+      "ip_address": "synthetic-data-adapter",
+      "port": "8080"
     }
   ]
 }
