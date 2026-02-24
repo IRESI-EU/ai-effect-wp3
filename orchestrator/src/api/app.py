@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from redis import Redis
 
 from api.models import (
+    DataReferenceResponse,
     ErrorResponse,
     HealthResponse,
     TaskListResponse,
@@ -144,6 +145,24 @@ class OrchestratorAPI:
                     created_at=task.created_at,
                     updated_at=task.updated_at,
                     error=task.error,
+                    input_refs=[
+                        DataReferenceResponse(
+                            protocol=r.protocol.value,
+                            uri=r.uri,
+                            format=r.format if isinstance(r.format, str) else r.format.value,
+                            metadata=r.metadata,
+                        )
+                        for r in task.input_refs
+                    ],
+                    output_refs=[
+                        DataReferenceResponse(
+                            protocol=r.protocol.value,
+                            uri=r.uri,
+                            format=r.format if isinstance(r.format, str) else r.format.value,
+                            metadata=r.metadata,
+                        )
+                        for r in task.output_refs
+                    ],
                 )
                 for task in tasks
             ]
@@ -169,6 +188,24 @@ class OrchestratorAPI:
                 created_at=task.created_at,
                 updated_at=task.updated_at,
                 error=task.error,
+                input_refs=[
+                    DataReferenceResponse(
+                        protocol=r.protocol.value,
+                        uri=r.uri,
+                        format=r.format if isinstance(r.format, str) else r.format.value,
+                        metadata=r.metadata,
+                    )
+                    for r in task.input_refs
+                ],
+                output_refs=[
+                    DataReferenceResponse(
+                        protocol=r.protocol.value,
+                        uri=r.uri,
+                        format=r.format if isinstance(r.format, str) else r.format.value,
+                        metadata=r.metadata,
+                    )
+                    for r in task.output_refs
+                ],
             )
 
         @app.delete(

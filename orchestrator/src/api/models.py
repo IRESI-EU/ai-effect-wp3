@@ -1,6 +1,7 @@
 """Request and response models for REST API."""
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -50,6 +51,17 @@ class WorkflowStatusResponse(BaseModel):
     error: str | None = None
 
 
+class DataReferenceResponse(BaseModel):
+    """Slim representation of a DataReference for API responses."""
+
+    model_config = ConfigDict(frozen=True)
+
+    protocol: str
+    uri: str
+    format: str
+    metadata: dict[str, Any] = {}
+
+
 class TaskStatusResponse(BaseModel):
     """Response for task status."""
 
@@ -61,6 +73,8 @@ class TaskStatusResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     error: str | None = None
+    input_refs: list[DataReferenceResponse] = []
+    output_refs: list[DataReferenceResponse] = []
 
 
 class TaskListResponse(BaseModel):
