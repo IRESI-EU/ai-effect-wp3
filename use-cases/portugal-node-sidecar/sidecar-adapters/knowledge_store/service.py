@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Add parent directories for imports (works for both local dev and Docker)
 # In Docker: /app/common exists alongside /app/service.py
-# Local dev: need to go up to portugal-node/
+# Local dev: need to go up to portugal-node-sidecar/
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 

@@ -27,10 +27,11 @@ ai-effect-wp3/
 │   │   └── protobuf_based/        # HTTP control + gRPC data
 │   ├── file_based_energy_pipeline/    # Example pipeline
 │   ├── protobuf_based_energy_pipeline/ # Example with gRPC
-│   ├── portugal-node/             # TEF third-party integration
+│   ├── portugal-node-sidecar/      # TEF integration (sidecar adapters)
+│   ├── portugal-node-integrated/   # TEF integration (embedded adapters)
 │   └── germany-node/             # VILLASnode chronics generation
 ├── scripts/                       # Build and generation tools
-└── use-cases-platform/            # Generated deployment packages
+└── use-cases-testing/            # Generated deployment packages
 ```
 
 ## Quick Start
@@ -213,12 +214,11 @@ Real-world integration with third-party TEF services for synthetic data generati
 LoadData → ApplyFeatures → TrainModel → GenerateData
 ```
 
-Demonstrates:
-- **Integrated adapters** - Embed control interface in existing services
-- **Sidecar adapters** - Separate adapter containers alongside services
-- **HTTP URL reference** - Data passing via HTTP endpoints
+Available in two variants:
+- **[portugal-node-sidecar](use-cases/portugal-node-sidecar/)** — Separate adapter containers alongside unmodified TEF services
+- **[portugal-node-integrated](use-cases/portugal-node-integrated/)** — Embed control interface directly in TEF services
 
-See `use-cases/portugal-node/README.md` for details.
+Both demonstrate HTTP URL reference data passing between services.
 
 ### germany-node (VILLASnode Chronics)
 
@@ -363,7 +363,7 @@ python scripts/build-script-generator.py use-cases/my_pipeline
 ```bash
 python scripts/onboarding-export-generator.py \
   use-cases/my_pipeline \
-  use-cases-platform/my_pipeline
+  use-cases-testing/my_pipeline
 ```
 
 By default, `dockerinfo.json` uses docker-compose service names (which resolve via Docker DNS on the shared `ai-effect-services` network) and internal port 8080 (the HTTP control interface).
@@ -381,11 +381,11 @@ python scripts/onboarding-export-generator.py \
 
 ```bash
 python scripts/docker-compose-generator.py \
-  use-cases-platform/my_pipeline
+  use-cases-testing/my_pipeline
 
 # Include orchestrator in the deployment
 python scripts/docker-compose-generator.py \
-  use-cases-platform/my_pipeline \
+  use-cases-testing/my_pipeline \
   --orchestrator-path orchestrator
 ```
 
@@ -398,7 +398,7 @@ To integrate existing services with AI-Effect:
 3. **Handle data references**: Support HTTP/gRPC/inline protocols
 4. **Configure networking**: Use Docker DNS for service discovery
 
-See `use-cases/portugal-node/` for a complete example.
+See `use-cases/portugal-node-sidecar/` and `use-cases/portugal-node-integrated/` for complete examples.
 
 ## License
 

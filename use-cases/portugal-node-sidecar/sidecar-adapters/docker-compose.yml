@@ -48,7 +48,7 @@ services:
       - SELF_URL=http://data-provision-adapter:8080
     volumes:
       # Mount data file - adjust path to your data location
-      - ../synthetic_data_generation/real_data.csv:/app/real_data.csv:ro
+      - ../data/real_data.csv:/app/real_data.csv:ro
     networks:
       - tef-network
     restart: unless-stopped

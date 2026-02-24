@@ -8,7 +8,8 @@ AVAILABLE_USE_CASES=(
   "file_based_energy_pipeline"
   "protobuf_based_energy_pipeline"
   "germany-node"
-  "portugal-node"
+  "portugal-node-sidecar"
+  "portugal-node-integrated"
 )
 
 usage() {

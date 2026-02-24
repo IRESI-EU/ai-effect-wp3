@@ -1,14 +1,12 @@
-# TEF Services with AI-Effect Integration
+# TEF Services with AI-Effect Control Interface (Integrated)
 #
-# This docker-compose runs all TEF services with the AI-Effect control interface.
-# Uses root build context (context: .) so each Dockerfile can COPY common/ directly.
+# Runs TEF services with the AI-Effect control interface embedded directly.
+# Uses root build context (context: .) so each Dockerfile can COPY common/.
 #
 # Prerequisites:
-#   1. Copy common/ to this directory
-#   2. Modify each service's Dockerfile to COPY common/ ./common/
-#   3. Modify each service's main.py to include the control router
-#
-# See RUNNING.md for detailed setup instructions.
+#   1. Copy TEF service source into data_provision/, knowledge_store/, synthetic_data_generation/
+#   2. Add control interface import to each service's main.py (see RUNNING.md)
+#   3. Place test data at data/real_data.csv
 
 services:
   clickhouse-server:
@@ -52,8 +50,7 @@ services:
       - CLICKHOUSE_PASSWORD=V0ltF3@t5?store
       - SELF_URL=http://data-provision:600
     volumes:
-      # Mount data file - adjust path as needed
-      - ./synthetic_data_generation/real_data.csv:/app/real_data.csv:ro
+      - ./data/real_data.csv:/app/real_data.csv:ro
     networks:
       - tef-network
     restart: unless-stopped
