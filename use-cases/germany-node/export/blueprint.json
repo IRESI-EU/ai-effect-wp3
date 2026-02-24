@@ -3,7 +3,7 @@
         {
             "proto_uri": "microservice/data_provider1.proto",
             "image": "germany-node-data-provider:latest",
-            "node_type": "MLModel",
+            "node_type": "DataSource",
             "container_name": "data_provider1",
             "operation_signature_list": [
                 {
@@ -28,7 +28,7 @@
         {
             "proto_uri": "microservice/output_formatter1.proto",
             "image": "germany-node-output-formatter:latest",
-            "node_type": "MLModel",
+            "node_type": "DataSink",
             "container_name": "output_formatter1",
             "operation_signature_list": [
                 {
@@ -70,8 +70,8 @@
         }
     ],
     "name": "Germany-Node",
-    "pipeline_id": "6aa94d50-decc-41ff-926b-67d47f9fdbc5",
-    "creation_date": "2026-02-23 21:34:24.967366",
+    "pipeline_id": "15125836-6653-4f22-a38e-cbaa66bfbaf8",
+    "creation_date": "2026-02-24 19:52:47.230249",
     "type": "pipeline-topology/v2",
     "version": "2.0"
 }

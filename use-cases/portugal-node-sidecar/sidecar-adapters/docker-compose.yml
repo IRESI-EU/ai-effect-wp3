@@ -18,7 +18,7 @@ services:
     ports:
       - "18101:8080"
     environment:
-      - KNOWLEDGE_STORE_URL=http://knowledge-store:8000
+      - KNOWLEDGE_STORE_URL=http://sc-knowledge-store:8000
       - SELF_URL=http://knowledge-store-adapter:8080
     networks:
       - tef-network
@@ -31,7 +31,7 @@ services:
     ports:
       - "18102:8080"
     environment:
-      - SYNTHETIC_DATA_URL=http://synthetic-data:600
+      - SYNTHETIC_DATA_URL=http://sc-synthetic-data:600
       - SELF_URL=http://synthetic-data-adapter:8080
     networks:
       - tef-network
@@ -44,7 +44,7 @@ services:
     ports:
       - "18103:8080"
     environment:
-      - DATA_PROVISION_URL=http://data-provision:600
+      - DATA_PROVISION_URL=http://sc-data-provision:600
       - SELF_URL=http://data-provision-adapter:8080
     volumes:
       # Mount data file - adjust path to your data location

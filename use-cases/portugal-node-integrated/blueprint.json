@@ -1,5 +1,5 @@
 {
-  "name": "TEF Synthetic Data Pipeline",
+  "name": "TEF Synthetic Data Pipeline (Integrated)",
   "pipeline_id": "tef-synthetic-pipeline",
   "creation_date": "2025-01-08",
   "type": "pipeline-topology/v2",
@@ -13,14 +13,14 @@
       "operation_signature_list": [
         {
           "operation_signature": {
-            "operation_name": "LoadData",
-            "output_message_name": "LoadDataResponse"
+            "operation_name": "ExecuteQuery",
+            "output_message_name": "ExecuteQueryResponse"
           },
           "connected_to": [
             {
               "container_name": "feature_engineer",
               "operation_signature": {
-                "operation_name": "ApplyFeatures"
+                "operation_name": "ApplyFunction"
               }
             }
           ]
@@ -35,9 +35,9 @@
       "operation_signature_list": [
         {
           "operation_signature": {
-            "operation_name": "ApplyFeatures",
-            "input_message_name": "ApplyFeaturesRequest",
-            "output_message_name": "ApplyFeaturesResponse"
+            "operation_name": "ApplyFunction",
+            "input_message_name": "ApplyFunctionRequest",
+            "output_message_name": "ApplyFunctionResponse"
           },
           "connected_to": [
             {

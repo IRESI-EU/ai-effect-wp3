@@ -17,9 +17,9 @@ from .control_interface import (
 )
 from .tef_operations import (
     fetch_http_data,
-    execute_LoadData,
-    execute_QueryDatabase,
-    execute_ApplyFeatures,
+    execute_ExecuteQuery,
+    execute_GetSchema,
+    execute_ApplyFunction,
     execute_TrainModel,
     execute_GenerateData,
     data_provision_handlers,
@@ -44,9 +44,9 @@ __all__ = [
     "get_data_url",
     # TEF operations
     "fetch_http_data",
-    "execute_LoadData",
-    "execute_QueryDatabase",
-    "execute_ApplyFeatures",
+    "execute_ExecuteQuery",
+    "execute_GetSchema",
+    "execute_ApplyFunction",
     "execute_TrainModel",
     "execute_GenerateData",
     "data_provision_handlers",

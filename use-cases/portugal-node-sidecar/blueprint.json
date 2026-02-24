@@ -1,26 +1,26 @@
 {
-  "name": "TEF Synthetic Data Pipeline",
-  "pipeline_id": "tef-synthetic-pipeline",
+  "name": "TEF Synthetic Data Pipeline (Sidecar)",
+  "pipeline_id": "tef-synthetic-pipeline-sidecar",
   "creation_date": "2025-01-08",
   "type": "pipeline-topology/v2",
   "version": "2.0",
   "nodes": [
     {
-      "container_name": "data_loader",
+      "container_name": "sidecar_data_loader",
       "proto_uri": "data_provision.proto",
       "image": "tef-data-provision-adapter:latest",
       "node_type": "DataSource",
       "operation_signature_list": [
         {
           "operation_signature": {
-            "operation_name": "LoadData",
-            "output_message_name": "LoadDataResponse"
+            "operation_name": "ExecuteQuery",
+            "output_message_name": "ExecuteQueryResponse"
           },
           "connected_to": [
             {
-              "container_name": "feature_engineer",
+              "container_name": "sidecar_feature_engineer",
               "operation_signature": {
-                "operation_name": "ApplyFeatures"
+                "operation_name": "ApplyFunction"
               }
             }
           ]
@@ -28,20 +28,20 @@
       ]
     },
     {
-      "container_name": "feature_engineer",
+      "container_name": "sidecar_feature_engineer",
       "proto_uri": "knowledge_store.proto",
       "image": "tef-knowledge-store-adapter:latest",
       "node_type": "MLModel",
       "operation_signature_list": [
         {
           "operation_signature": {
-            "operation_name": "ApplyFeatures",
-            "input_message_name": "ApplyFeaturesRequest",
-            "output_message_name": "ApplyFeaturesResponse"
+            "operation_name": "ApplyFunction",
+            "input_message_name": "ApplyFunctionRequest",
+            "output_message_name": "ApplyFunctionResponse"
           },
           "connected_to": [
             {
-              "container_name": "model_trainer",
+              "container_name": "sidecar_model_trainer",
               "operation_signature": {
                 "operation_name": "TrainModel"
               }
@@ -51,7 +51,7 @@
       ]
     },
     {
-      "container_name": "model_trainer",
+      "container_name": "sidecar_model_trainer",
       "proto_uri": "synthetic_data.proto",
       "image": "tef-synthetic-data-adapter:latest",
       "node_type": "MLModel",
@@ -64,7 +64,7 @@
           },
           "connected_to": [
             {
-              "container_name": "data_generator",
+              "container_name": "sidecar_data_generator",
               "operation_signature": {
                 "operation_name": "GenerateData"
               }
@@ -74,7 +74,7 @@
       ]
     },
     {
-      "container_name": "data_generator",
+      "container_name": "sidecar_data_generator",
       "proto_uri": "synthetic_data.proto",
       "image": "tef-synthetic-data-adapter:latest",
       "node_type": "DataSink",

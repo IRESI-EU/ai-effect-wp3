@@ -7,10 +7,10 @@ All configuration comes through inputs:
 - Start nodes: Receive inline JSON input with config
 - Middle nodes: Receive HTTP URL reference to upstream data
 
-Handlers:
-    - LoadData: Load data from file
-    - QueryDatabase: Execute SQL query via Data Provision
-    - ApplyFeatures: Apply feature engineering via Knowledge Store
+Handlers (names match proto RPC definitions):
+    - ExecuteQuery: Execute SQL query via Data Provision (start node with default query)
+    - GetSchema: Get database schema via Data Provision
+    - ApplyFunction: Apply feature engineering via Knowledge Store
     - TrainModel: Train DoppelGANger model via Synthetic Data (async)
     - GenerateData: Generate synthetic data via Synthetic Data
 
@@ -75,7 +75,7 @@ def fetch_http_data(uri: str, timeout: float = 60.0) -> str:
 # =============================================================================
 
 
-def execute_LoadData(request: ExecuteRequest) -> ExecuteResponse:
+def execute_ExecuteQuery(request: ExecuteRequest) -> ExecuteResponse:
     """Load data from a file and serve via HTTP URL.
 
     Input (inline JSON):
@@ -135,7 +135,7 @@ def execute_LoadData(request: ExecuteRequest) -> ExecuteResponse:
         return ExecuteResponse(status="failed", error=str(e))
 
 
-def execute_QueryDatabase(request: ExecuteRequest) -> ExecuteResponse:
+def execute_GetSchema(request: ExecuteRequest) -> ExecuteResponse:
     """Execute SQL query against ClickHouse via Data Provision.
 
     Input (inline JSON):
@@ -193,7 +193,7 @@ def execute_QueryDatabase(request: ExecuteRequest) -> ExecuteResponse:
 # =============================================================================
 
 
-def execute_ApplyFeatures(request: ExecuteRequest) -> ExecuteResponse:
+def execute_ApplyFunction(request: ExecuteRequest) -> ExecuteResponse:
     """Apply feature engineering function via Knowledge Store.
 
     Input:
@@ -485,12 +485,12 @@ def execute_GenerateData(request: ExecuteRequest) -> ExecuteResponse:
 # =============================================================================
 
 data_provision_handlers = {
-    "LoadData": execute_LoadData,
-    "QueryDatabase": execute_QueryDatabase,
+    "ExecuteQuery": execute_ExecuteQuery,
+    "GetSchema": execute_GetSchema,
 }
 
 knowledge_store_handlers = {
-    "ApplyFeatures": execute_ApplyFeatures,
+    "ApplyFunction": execute_ApplyFunction,
 }
 
 synthetic_data_handlers = {
