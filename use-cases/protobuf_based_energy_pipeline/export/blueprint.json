@@ -95,8 +95,8 @@
         }
     ],
     "name": "Protobuf Based Energy Pipeline",
-    "pipeline_id": "924b30ed-fb5a-43ed-bc1c-e436a83a77e9",
-    "creation_date": "2026-02-24 19:52:47.132046",
+    "pipeline_id": "147c5b56-53ab-41db-ba29-abacda0745af",
+    "creation_date": "2026-02-25 01:55:51.368280",
     "type": "pipeline-topology/v2",
     "version": "2.0"
 }

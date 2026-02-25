@@ -95,8 +95,8 @@
         }
     ],
     "name": "File Based Energy Pipeline",
-    "pipeline_id": "8657e56a-d139-46bc-9068-ee1d2267463d",
-    "creation_date": "2026-02-24 19:52:47.030691",
+    "pipeline_id": "0696224f-eb7d-41bf-8cd7-0464d82edb3c",
+    "creation_date": "2026-02-25 01:55:50.342301",
     "type": "pipeline-topology/v2",
     "version": "2.0"
 }
