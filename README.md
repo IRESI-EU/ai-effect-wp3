@@ -196,10 +196,10 @@ See `use-cases/templates/README.md` for detailed documentation.
 
 ### file_based_energy_pipeline
 
-Simple three-service pipeline demonstrating file-based data exchange:
+Four-service pipeline demonstrating file-based data exchange:
 
 ```
-data_generator → data_analyzer → report_generator
+input_provider → data_generator → data_analyzer → report_generator
 ```
 
 ### protobuf_based_energy_pipeline

@@ -19,15 +19,15 @@ input-provider → data-generator → data-analyzer → report-generator
 
 | Service | HTTP Port | gRPC Port | Description |
 |---------|-----------|-----------|-------------|
-| input-provider | 18081 | — | Provides initial configuration |
-| data-generator | 18082 | 50052 | Generates energy data |
-| data-analyzer | 18083 | 50053 | Analyzes generated data |
-| report-generator | 18084 | 50054 | Produces final report |
+| input-provider | 18181 | — | Provides initial configuration |
+| data-generator | 18182 | 50152 | Generates energy data |
+| data-analyzer | 18183 | 50153 | Analyzes generated data |
+| report-generator | 18184 | 50154 | Produces final report |
 
 ## Prerequisites
 
 - Docker and Docker Compose
-- Ports available: 18081-18084 (HTTP), 50051-50054 (gRPC), 18000 (orchestrator)
+- Ports available: 18181-18184 (HTTP), 50152-50154 (gRPC), 18000 (orchestrator)
 
 ## Directory Structure
 
