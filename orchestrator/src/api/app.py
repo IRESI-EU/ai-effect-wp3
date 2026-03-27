@@ -1,9 +1,24 @@
 """FastAPI REST API for orchestration platform."""
 
+import os
 import uuid
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis import Redis
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+def _verify_orchestrator_key(
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(_bearer),
+) -> None:
+    api_key = os.environ.get("ORCHESTRATOR_API_KEY")
+    if not api_key:
+        return
+    if not credentials or credentials.credentials != api_key:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 from api.models import (
     DataReferenceResponse,
@@ -59,6 +74,7 @@ class OrchestratorAPI:
             "/workflows",
             response_model=WorkflowSubmitResponse,
             responses={400: {"model": ErrorResponse}},
+            dependencies=[Depends(_verify_orchestrator_key)],
         )
         def submit_workflow(request: WorkflowSubmitRequest) -> WorkflowSubmitResponse:
             """Submit a new workflow."""
@@ -76,6 +92,10 @@ class OrchestratorAPI:
 
             # Generate workflow ID
             workflow_id = f"wf-{uuid.uuid4().hex[:12]}"
+
+            # Store services API key for worker to use when calling services
+            if request.services_api_key:
+                self._redis.set(f"services_key:{workflow_id}", request.services_api_key)
 
             # Store endpoints for worker lookup
             endpoints_key = f"endpoints:{workflow_id}"
@@ -106,6 +126,7 @@ class OrchestratorAPI:
             "/workflows/{workflow_id}",
             response_model=WorkflowStatusResponse,
             responses={404: {"model": ErrorResponse}},
+            dependencies=[Depends(_verify_orchestrator_key)],
         )
         def get_workflow_status(workflow_id: str) -> WorkflowStatusResponse:
             """Get workflow status."""
@@ -126,6 +147,7 @@ class OrchestratorAPI:
             "/workflows/{workflow_id}/tasks",
             response_model=TaskListResponse,
             responses={404: {"model": ErrorResponse}},
+            dependencies=[Depends(_verify_orchestrator_key)],
         )
         def get_workflow_tasks(workflow_id: str) -> TaskListResponse:
             """Get all tasks for a workflow."""
@@ -173,6 +195,7 @@ class OrchestratorAPI:
             "/workflows/{workflow_id}/tasks/{task_id}",
             response_model=TaskStatusResponse,
             responses={404: {"model": ErrorResponse}},
+            dependencies=[Depends(_verify_orchestrator_key)],
         )
         def get_task_status(workflow_id: str, task_id: str) -> TaskStatusResponse:
             """Get task status."""
@@ -211,6 +234,7 @@ class OrchestratorAPI:
         @app.delete(
             "/workflows/{workflow_id}",
             responses={404: {"model": ErrorResponse}},
+            dependencies=[Depends(_verify_orchestrator_key)],
         )
         def delete_workflow(workflow_id: str) -> dict:
             """Delete a workflow."""

@@ -11,11 +11,24 @@ uvicorn workers), use external state storage like Redis instead.
 import logging
 import os
 import threading
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+
+_bearer = HTTPBearer(auto_error=False)
+
+
+def _check_api_key(
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(_bearer),
+) -> None:
+    api_key = os.environ.get("SERVICE_API_KEY")
+    if not api_key:
+        return
+    if not credentials or credentials.credentials != api_key:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +175,7 @@ def create_app(service_module) -> FastAPI:
         version="1.0.0",
     )
 
-    @app.post("/control/execute", response_model=ExecuteResponse)
+    @app.post("/control/execute", response_model=ExecuteResponse, dependencies=[Depends(_check_api_key)])
     def execute(request: ExecuteRequest) -> ExecuteResponse:
         """Execute a task by dispatching to service method."""
         logger.info(f"Execute: method={request.method}, task={request.task_id}")
@@ -182,7 +195,7 @@ def create_app(service_module) -> FastAPI:
             logger.error(f"Execute failed: {e}")
             return ExecuteResponse(status="failed", error=str(e))
 
-    @app.get("/control/status/{task_id}", response_model=StatusResponse)
+    @app.get("/control/status/{task_id}", response_model=StatusResponse, dependencies=[Depends(_check_api_key)])
     def get_status(task_id: str) -> StatusResponse:
         """Get status of an async task."""
         status = task_manager.get_status(task_id)
@@ -190,7 +203,7 @@ def create_app(service_module) -> FastAPI:
             raise HTTPException(status_code=404, detail="Task not found")
         return StatusResponse(**status)
 
-    @app.get("/control/output/{task_id}", response_model=OutputResponse)
+    @app.get("/control/output/{task_id}", response_model=OutputResponse, dependencies=[Depends(_check_api_key)])
     def get_output(task_id: str) -> OutputResponse:
         """Get output of a completed async task."""
         output = task_manager.get_output(task_id)

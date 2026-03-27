@@ -19,6 +19,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - HOST=0.0.0.0
       - PORT=8000
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
     depends_on:
       redis:
         condition: service_healthy
@@ -33,6 +34,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - WORKER_POLL_INTERVAL=1.0
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
     depends_on:
       redis:
         condition: service_healthy

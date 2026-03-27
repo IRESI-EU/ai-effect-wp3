@@ -14,6 +14,7 @@ class WorkflowSubmitRequest(BaseModel):
     blueprint: dict
     dockerinfo: dict
     inputs: list[dict] = []  # Initial DataReference objects for start nodes
+    services_api_key: str | None = None  # Optional bearer token sent to services
 
     @field_validator("blueprint")
     @classmethod
