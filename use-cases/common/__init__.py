@@ -1,7 +1,7 @@
-"""Shared handler modules for Germany node services.
+"""Shared control interface handler library for AI-Effect services.
 
-Sequential handler: for services that complete immediately (data_provider, output_formatter).
-Concurrent handler: for services with long-running background tasks (villas_chronics).
+Sequential handler: for services that complete immediately.
+Concurrent handler: for services with long-running background tasks.
 """
 
 from .sequential import (
