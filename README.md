@@ -304,7 +304,8 @@ Request:
   "dockerinfo": {...},
   "inputs": [
     {"protocol": "inline", "uri": "<base64>", "format": "json"}
-  ]
+  ],
+  "services_api_key": "optional-bearer-token-for-services"
 }
 ```
 
@@ -333,6 +334,64 @@ GET /workflows/{workflow_id}/tasks
 ```
 GET /health
 ```
+
+## Authentication
+
+Both the orchestrator API and services support optional bearer token authentication. Auth is **opt-in** — if no key is configured, everything works as before with no breaking changes.
+
+### Orchestrator API
+
+Set `ORCHESTRATOR_API_KEY` to require a bearer token on all orchestrator API calls (except `/health`):
+
+```bash
+ORCHESTRATOR_API_KEY=your-secret-key docker compose up -d
+```
+
+All requests must then include:
+```
+Authorization: Bearer your-secret-key
+```
+
+Without the env var set, the orchestrator API is open.
+
+### Services
+
+Set `SERVICE_API_KEY` to require a bearer token on all `/control/*` endpoints:
+
+```bash
+SERVICE_API_KEY=your-secret-key docker compose up -d
+```
+
+The `/health` endpoint remains unauthenticated for monitoring.
+
+### End-to-end: authenticated workflow
+
+When services require auth, pass `services_api_key` in the workflow submit request. The orchestrator stores it per-workflow and sends it as a bearer token on every service call:
+
+```bash
+curl -s -X POST http://localhost:18000/workflows \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-orchestrator-key" \
+  -d '{
+    "blueprint": {...},
+    "dockerinfo": {...},
+    "services_api_key": "your-service-key"
+  }' | jq .
+```
+
+### Key generation
+
+```bash
+openssl rand -hex 32
+```
+
+### Summary
+
+| What is protected | Env var | Where to set |
+|---|---|---|
+| Orchestrator API | `ORCHESTRATOR_API_KEY` | `orchestrator/docker-compose.yml` or host env |
+| Service `/control/*` endpoints | `SERVICE_API_KEY` | use-case `docker-compose.yml` or host env |
+| Orchestrator → Services calls | `services_api_key` in submit request | passed per-workflow by the API caller |
 
 ## Development
 
