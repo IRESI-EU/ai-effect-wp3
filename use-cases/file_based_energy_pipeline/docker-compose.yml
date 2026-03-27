@@ -7,6 +7,7 @@ services:
       - "18081:8080"
     environment:
       - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
 
   data-generator:
     build:
@@ -18,6 +19,7 @@ services:
       - ./data:/app/data
     environment:
       - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
 
   data-analyzer:
     build:
@@ -29,6 +31,7 @@ services:
       - ./data:/app/data
     environment:
       - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
 
   report-generator:
     build:
@@ -40,6 +43,7 @@ services:
       - ./data:/app/data
     environment:
       - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
 
 networks:
   default:

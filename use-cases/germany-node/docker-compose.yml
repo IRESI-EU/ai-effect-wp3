@@ -10,6 +10,7 @@ services:
       - shared-data:/shared
     environment:
       - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
 
   villas-chronics:
     build:
@@ -21,6 +22,7 @@ services:
       - shared-data:/shared
     environment:
       - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
       - VILLAS_NODE_URL=http://villas-node:80
 
   villas-node:
@@ -41,6 +43,7 @@ services:
       - shared-data:/shared
     environment:
       - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
 
 volumes:
   shared-data:
