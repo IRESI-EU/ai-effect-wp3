@@ -1,8 +1,8 @@
 services:
   data-provider:
     build:
-      context: .
-      dockerfile: services/data_provider/Dockerfile
+      context: ../
+      dockerfile: germany-node/services/data_provider/Dockerfile
     ports:
       - "18091:8080"
     volumes:
@@ -13,8 +13,8 @@ services:
 
   villas-chronics:
     build:
-      context: .
-      dockerfile: services/villas_chronics/Dockerfile
+      context: ../
+      dockerfile: germany-node/services/villas_chronics/Dockerfile
     ports:
       - "18092:8080"
     volumes:
@@ -33,8 +33,8 @@ services:
 
   output-formatter:
     build:
-      context: .
-      dockerfile: services/output_formatter/Dockerfile
+      context: ../
+      dockerfile: germany-node/services/output_formatter/Dockerfile
     ports:
       - "18093:8080"
     volumes:

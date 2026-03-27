@@ -1,8 +1,8 @@
 services:
   pb-input-provider:
     build:
-      context: .
-      dockerfile: services/input_provider/Dockerfile
+      context: ../
+      dockerfile: protobuf_based_energy_pipeline/services/input_provider/Dockerfile
     ports:
       - "18181:8080"   # HTTP control interface (no gRPC - config passed inline)
     environment:
@@ -10,8 +10,8 @@ services:
 
   pb-data-generator:
     build:
-      context: .
-      dockerfile: services/data_generator/Dockerfile
+      context: ../
+      dockerfile: protobuf_based_energy_pipeline/services/data_generator/Dockerfile
     ports:
       - "18182:8080"   # HTTP control interface
       - "50152:50051"  # gRPC data interface
@@ -22,8 +22,8 @@ services:
 
   pb-data-analyzer:
     build:
-      context: .
-      dockerfile: services/data_analyzer/Dockerfile
+      context: ../
+      dockerfile: protobuf_based_energy_pipeline/services/data_analyzer/Dockerfile
     ports:
       - "18183:8080"   # HTTP control interface
       - "50153:50051"  # gRPC data interface
@@ -34,8 +34,8 @@ services:
 
   pb-report-generator:
     build:
-      context: .
-      dockerfile: services/report_generator/Dockerfile
+      context: ../
+      dockerfile: protobuf_based_energy_pipeline/services/report_generator/Dockerfile
     ports:
       - "18184:8080"   # HTTP control interface
       - "50154:50051"  # gRPC data interface
