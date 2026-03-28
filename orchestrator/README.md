@@ -118,6 +118,43 @@ REDIS_URL=redis://localhost:6379 python -m src.main
 REDIS_URL=redis://localhost:6379 python -m src.worker_daemon
 ```
 
+## Using with the Portal
+
+The orchestrator is the execution backend for the [AI-Effect WP3 Portal](https://portal.renewenergy.io). The portal submits workflows via the REST API and polls for status. Two common setups:
+
+### Local orchestrator + ngrok (testing)
+
+Run the orchestrator locally and expose it to the portal via ngrok:
+
+```bash
+# Start orchestrator
+ORCHESTRATOR_API_KEY=your-key docker compose up -d
+
+# Expose via ngrok
+ngrok http 18000
+# → copy the https://xxx.ngrok-free.app URL
+```
+
+Set the ngrok URL as the **Orchestrator URL** on the solution in the portal (either in the solution Edit page or directly in the deploy dialog).
+
+> **ngrok is for testing only.** The free tier gives a different URL each restart. For a stable deployment, use a reverse proxy instead — see below.
+
+### Server orchestrator (stable)
+
+Deploy the orchestrator on a server and expose it via a reverse proxy with HTTPS. No code changes are needed — the orchestrator serves plain HTTP; TLS termination happens at the proxy layer (nginx, Traefik, Caddy all work).
+
+```bash
+# On your server:
+ORCHESTRATOR_API_KEY=your-key docker compose up -d
+# Then configure your reverse proxy to forward HTTPS → localhost:18000
+```
+
+Set `https://your-orchestrator.example.com` as the Orchestrator URL in the portal. The portal can also be configured with a server-side default (`ORCHESTRATOR_URL` env var) so solutions don't need the URL set explicitly.
+
+The same HTTPS-via-proxy approach applies to the pipeline services (each runs on port `8080` internally).
+
+---
+
 ## Environment Variables
 
 | Variable | Default | Description |
