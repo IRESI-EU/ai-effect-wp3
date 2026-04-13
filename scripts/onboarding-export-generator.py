@@ -19,6 +19,7 @@ Required input structure:
 import json
 import shutil
 import argparse
+import zipfile
 from pathlib import Path
 from datetime import datetime
 import uuid
@@ -328,6 +329,32 @@ class OnboardingExportGenerator:
 
         return metadata
 
+    def create_zip(self, zip_path):
+        """Package blueprint.json, dockerinfo.json and microservice/ into a ZIP
+        suitable for the portal's Import ZIP action.
+
+        generation_metadata.json is intentionally excluded — it is only used
+        locally and not consumed by the portal importer.
+        """
+        zip_path = Path(zip_path)
+        zip_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for name in ('blueprint.json', 'dockerinfo.json'):
+                path = self.output_dir / name
+                if not path.exists():
+                    raise FileNotFoundError(f"Expected {path} in output dir")
+                zf.write(path, name)
+
+            microservice_dir = self.output_dir / 'microservice'
+            if not microservice_dir.exists():
+                raise FileNotFoundError(f"Expected {microservice_dir} in output dir")
+            for proto in sorted(microservice_dir.glob('*.proto')):
+                zf.write(proto, f"microservice/{proto.name}")
+
+        print(f"Packaged: {zip_path}")
+        return zip_path
+
     def generate_export(self):
         """Generate complete onboarding export"""
         print(f"Generating onboarding export from: {self.use_case_dir}")
@@ -377,6 +404,12 @@ def main():
     parser.add_argument('use_case_dir', help='Path to use case directory containing services/ and connections.json')
     parser.add_argument('output_dir', help='Output directory for onboarding export')
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing output directory')
+    parser.add_argument(
+        '--zip', nargs='?', const='__default__', default=None,
+        metavar='PATH',
+        help='Also create a ZIP ready for portal import. With no value, writes '
+             '<output_dir>.zip; pass a path to choose the location.',
+    )
 
     args = parser.parse_args()
 
@@ -392,6 +425,14 @@ def main():
     try:
         generator.generate_export()
 
+        zip_path = None
+        if args.zip is not None:
+            if args.zip == '__default__':
+                zip_path = Path(args.output_dir).with_suffix('.zip')
+            else:
+                zip_path = Path(args.zip)
+            generator.create_zip(zip_path)
+
         print("\n" + "="*60)
         print("ONBOARDING EXPORT GENERATED")
         print("="*60)
@@ -401,6 +442,8 @@ def main():
         print("- dockerinfo.json")
         print("- generation_metadata.json")
         print("- microservice/*.proto")
+        if zip_path is not None:
+            print(f"\nPortal-ready ZIP: {zip_path}")
 
         return 0
     except Exception as e:
