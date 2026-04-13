@@ -1,17 +1,32 @@
 syntax = "proto3";
 package data_analyzer;
 
-import "common.proto";
+message EnergyRecord {
+  string timestamp = 1;
+  string household_id = 2;
+  double power_consumption = 3;
+  double voltage = 4;
+  double current = 5;
+}
 
-message AnalyzeDataRequest {
-  repeated common.EnergyRecord records = 1;
-  double anomaly_threshold = 2;
+message AnalyzedRecord {
+  EnergyRecord original = 1;
+  double efficiency_score = 2;
+  bool is_anomaly = 3;
+  string anomaly_reason = 4;
+}
+
+// Mirrors data_generator.GenerateDataResponse so AI4EU Designer can connect them.
+message GenerateDataResponse {
+  bool success = 1;
+  string message = 2;
+  repeated EnergyRecord records = 3;
 }
 
 message AnalyzeDataResponse {
   bool success = 1;
   string message = 2;
-  repeated common.AnalyzedRecord analyzed_records = 3;
+  repeated AnalyzedRecord analyzed_records = 3;
   int32 total_records = 4;
   int32 anomalies_detected = 5;
   double average_efficiency = 6;
@@ -19,5 +34,5 @@ message AnalyzeDataResponse {
 
 service DataAnalyzerService {
   // Analyze energy data for anomalies and efficiency
-  rpc AnalyzeData(AnalyzeDataRequest) returns (AnalyzeDataResponse);
+  rpc AnalyzeData(GenerateDataResponse) returns (AnalyzeDataResponse);
 }

@@ -20,11 +20,11 @@ package synthetic_data_generation;
 // ====================================================================================
 
 service SyntheticDataGeneration {
-  // Train a new DoppelGANger model with uploaded data
-  rpc TrainModel(TrainModelRequest) returns (TrainModelResponse);
+  // Train a new DoppelGANger model (input mirrors knowledge_store.ApplyFunctionResponse for AI4EU Designer compatibility)
+  rpc TrainModel(ApplyFunctionResponse) returns (TrainModelResponse);
 
-  // Generate synthetic data using a trained model
-  rpc GenerateData(GenerateDataRequest) returns (GenerateDataResponse);
+  // Generate synthetic data (input mirrors TrainModelResponse for AI4EU Designer compatibility)
+  rpc GenerateData(TrainModelResponse) returns (GenerateDataResponse);
 
   // List available trained models for a user
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
@@ -47,6 +47,15 @@ message TrainModelRequest {
   int32 sequence_len = 7;        // Sequence length for training (default: 100)
   int32 batch_size = 8;          // Batch size for training (default: 1000)
   int32 epochs = 9;              // Number of training epochs (default: 10)
+}
+
+// Mirrors knowledge_store.ApplyFunctionResponse so AI4EU Designer can connect them.
+message DataRow {
+  map<string, string> fields = 1;
+}
+
+message ApplyFunctionResponse {
+  repeated DataRow data = 1;
 }
 
 message TrainModelResponse {

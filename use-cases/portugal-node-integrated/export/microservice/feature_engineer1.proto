@@ -28,8 +28,8 @@ service KnowledgeStore {
   // List available feature/analytical/forecasting functions
   rpc ListFunctions(ListFunctionsRequest) returns (ListFunctionsResponse);
 
-  // Apply a function to a dataset
-  rpc ApplyFunction(ApplyFunctionRequest) returns (ApplyFunctionResponse);
+  // Apply a function to a dataset (input mirrors data_provision.ExecuteQueryResponse for AI4EU Designer compatibility)
+  rpc ApplyFunction(ExecuteQueryResponse) returns (ApplyFunctionResponse);
 
   // List available recipes
   rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
@@ -101,6 +101,28 @@ message ApplyFunctionRequest {
   string feature_function_kwargs_json = 2;  // JSON string with function parameters
   bytes file_data = 3;                       // The uploaded file (CSV, Excel, etc.)
   string file_name = 4;                      // Original filename for extension detection
+}
+
+// Mirrors data_provision.ExecuteQueryResponse so AI4EU Designer can connect them.
+message QueryRow {
+  map<string, string> fields = 1;
+}
+
+message JsonResult {
+  repeated QueryRow data = 1;
+}
+
+message FileResult {
+  bytes file_data = 1;
+  string file_name = 2;
+  string media_type = 3;
+}
+
+message ExecuteQueryResponse {
+  oneof response {
+    JsonResult json_result = 1;
+    FileResult file_result = 2;
+  }
 }
 
 message DataRow {

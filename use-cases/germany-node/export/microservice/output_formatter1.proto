@@ -1,8 +1,11 @@
 syntax = "proto3";
 package output_formatter;
 
-message FormatOutputRequest {
-  string chronics_path = 1;
+// Mirrors villas_chronics.GenerateChronicsResponse so AI4EU Designer can connect them.
+message GenerateChronicsResponse {
+  bool success = 1;
+  string message = 2;
+  string chronics_path = 3;
 }
 
 message FormatOutputResponse {
@@ -13,5 +16,5 @@ message FormatOutputResponse {
 }
 
 service OutputFormatterService {
-  rpc FormatOutput(FormatOutputRequest) returns (FormatOutputResponse);
+  rpc FormatOutput(GenerateChronicsResponse) returns (FormatOutputResponse);
 }

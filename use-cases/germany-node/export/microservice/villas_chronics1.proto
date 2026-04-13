@@ -1,11 +1,11 @@
 syntax = "proto3";
 package villas_chronics;
 
-message GenerateChronicsRequest {
-  string data_path = 1;
-  int32 round_decimals = 2;
-  bool compress = 3;
-  double voltage = 4;
+// Mirrors data_provider.ProvideDataResponse so AI4EU Designer can connect them.
+message ProvideDataResponse {
+  bool success = 1;
+  string message = 2;
+  string data_path = 3;
 }
 
 message GenerateChronicsResponse {
@@ -15,5 +15,5 @@ message GenerateChronicsResponse {
 }
 
 service VillasChronicsService {
-  rpc GenerateChronics(GenerateChronicsRequest) returns (GenerateChronicsResponse);
+  rpc GenerateChronics(ProvideDataResponse) returns (GenerateChronicsResponse);
 }

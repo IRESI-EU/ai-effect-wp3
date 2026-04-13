@@ -36,7 +36,7 @@
                     "operation_signature": {
                         "operation_name": "FormatOutput",
                         "output_message_name": "FormatOutputResponse",
-                        "input_message_name": "FormatOutputRequest",
+                        "input_message_name": "GenerateChronicsResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }
@@ -61,7 +61,7 @@
                     "operation_signature": {
                         "operation_name": "GenerateChronics",
                         "output_message_name": "GenerateChronicsResponse",
-                        "input_message_name": "GenerateChronicsRequest",
+                        "input_message_name": "ProvideDataResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }

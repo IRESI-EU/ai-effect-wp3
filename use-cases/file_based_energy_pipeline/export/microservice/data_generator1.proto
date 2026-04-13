@@ -1,9 +1,12 @@
 syntax = "proto3";
 package data_generator;
 
-message GenerateDataRequest {
-  int32 num_records = 1;
-  string output_format = 2; // csv, json
+// Mirrors input_provider.GetConfigurationResponse so AI4EU Designer can connect them.
+message GetConfigurationResponse {
+  bool success = 1;
+  string message = 2;
+  int32 num_records = 3;
+  string output_format = 4;
 }
 
 message GenerateDataResponse {
@@ -14,5 +17,5 @@ message GenerateDataResponse {
 }
 
 service DataGeneratorService {
-  rpc GenerateData(GenerateDataRequest) returns (GenerateDataResponse);
+  rpc GenerateData(GetConfigurationResponse) returns (GenerateDataResponse);
 }

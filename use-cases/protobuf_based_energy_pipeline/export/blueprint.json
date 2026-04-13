@@ -18,7 +18,7 @@
                     "operation_signature": {
                         "operation_name": "AnalyzeData",
                         "output_message_name": "AnalyzeDataResponse",
-                        "input_message_name": "AnalyzeDataRequest",
+                        "input_message_name": "GenerateDataResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }
@@ -43,7 +43,7 @@
                     "operation_signature": {
                         "operation_name": "GenerateData",
                         "output_message_name": "GenerateDataResponse",
-                        "input_message_name": "GenerateDataRequest",
+                        "input_message_name": "GetConfigurationResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }
@@ -86,7 +86,7 @@
                     "operation_signature": {
                         "operation_name": "GenerateReport",
                         "output_message_name": "GenerateReportResponse",
-                        "input_message_name": "GenerateReportRequest",
+                        "input_message_name": "AnalyzeDataResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }

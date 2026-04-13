@@ -1,9 +1,14 @@
 syntax = "proto3";
 package report_generator;
 
-message GenerateReportRequest {
-  string output_file_path = 1;  // File path from previous service
-  string report_format = 2; // csv, html, json
+// Mirrors data_analyzer.AnalyzeDataResponse so AI4EU Designer can connect them.
+message AnalyzeDataResponse {
+  bool success = 1;
+  string message = 2;
+  int32 total_records = 3;
+  int32 anomalies_detected = 4;
+  float average_efficiency = 5;
+  string output_file_path = 6;
 }
 
 message GenerateReportResponse {
@@ -14,5 +19,5 @@ message GenerateReportResponse {
 }
 
 service ReportGeneratorService {
-  rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
+  rpc GenerateReport(AnalyzeDataResponse) returns (GenerateReportResponse);
 }

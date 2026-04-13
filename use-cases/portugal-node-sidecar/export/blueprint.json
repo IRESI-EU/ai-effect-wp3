@@ -11,7 +11,7 @@
                     "operation_signature": {
                         "operation_name": "GenerateData",
                         "output_message_name": "GenerateDataResponse",
-                        "input_message_name": "GenerateDataRequest",
+                        "input_message_name": "TrainModelResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }
@@ -61,7 +61,7 @@
                     "operation_signature": {
                         "operation_name": "ApplyFunction",
                         "output_message_name": "ApplyFunctionResponse",
-                        "input_message_name": "ApplyFunctionRequest",
+                        "input_message_name": "ExecuteQueryResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }
@@ -86,7 +86,7 @@
                     "operation_signature": {
                         "operation_name": "TrainModel",
                         "output_message_name": "TrainModelResponse",
-                        "input_message_name": "TrainModelRequest",
+                        "input_message_name": "ApplyFunctionResponse",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }
