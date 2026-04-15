@@ -164,13 +164,18 @@ The generator uses connections to:
 
 ## Step 3: Run the Generator
 
+From the repo root:
+
 ```bash
-cd scripts/
-python onboarding-export-generator.py \
-    ../use-cases/danish-node \
-    ../use-cases/danish-node/export \
-    --overwrite
+python3 scripts/onboarding-export-generator.py \
+    use-cases/danish-node \
+    use-cases/danish-node/export \
+    --overwrite --zip
 ```
+
+The `--zip` flag produces a portal-ready ZIP in one step. By default it is written next to the output directory as `<output_dir>.zip` (here: `use-cases/danish-node/export.zip`). Pass a path after `--zip` to choose a custom location, e.g. `--zip /tmp/danish-node.zip`.
+
+Omit `--zip` if you only want the export folder without packaging.
 
 This creates:
 
@@ -183,11 +188,20 @@ use-cases/danish-node/export/
     ├── data_ingestion1.proto
     ├── anomaly_detector1.proto
     └── report_writer1.proto
+
+use-cases/danish-node/export.zip  ← upload this to the portal
 ```
 
 ## Step 4: Upload to the Portal
 
-Zip the export directory and upload it through the portal's onboarding interface. The portal reads `blueprint.json` for the pipeline graph and `dockerinfo.json` to know how to reach each service.
+Open the portal at https://portal.renewenergy.io, go to **Solutions → Import ZIP**, and upload the file created in Step 3. The portal reads `blueprint.json` for the pipeline graph and `dockerinfo.json` to know how to reach each service.
+
+If you skipped `--zip` in Step 3, you can package the export folder manually:
+
+```bash
+cd use-cases/danish-node/export
+zip -r ../danish-node.zip blueprint.json dockerinfo.json microservice/
+```
 
 ## Quick Reference: Existing Use Cases
 
