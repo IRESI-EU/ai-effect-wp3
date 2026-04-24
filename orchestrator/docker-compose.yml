@@ -1,5 +1,6 @@
 services:
   redis:
+    restart: unless-stopped
     image: redis:7-alpine
     ports:
       - "16379:6379"
@@ -10,6 +11,7 @@ services:
       retries: 3
 
   api:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -27,6 +29,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   worker:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
