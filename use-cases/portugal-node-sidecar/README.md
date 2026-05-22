@@ -75,9 +75,13 @@ All adapters expose the standard AI-Effect control interface:
 |----------|--------|-------------|
 | `/control/execute` | POST | Start an operation |
 | `/control/status/{task_id}` | GET | Check task status |
-| `/control/output/{task_id}` | GET | Retrieve task output |
-| `/control/data/{task_id}` | GET | Serve raw data |
+| `/control/output/{task_id}` | GET | Retrieve task output (returns a DataReference) |
+| `/control/data/{task_id}` | GET | Serve raw data — optional, data-plane convenience (not called by the orchestrator) |
 | `/health` | GET | Health check |
+
+The orchestrator only calls `execute`, `status`, `output`, and `health`.
+`/control/data` is a service-to-service endpoint: it is one possible target for
+an `http` DataReference, but a service may serve data any other way instead.
 
 ## Running
 

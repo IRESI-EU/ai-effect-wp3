@@ -133,7 +133,8 @@ The network is auto-created by `start.sh` scripts. To verify all containers are 
 docker network inspect ai-effect-services --format '{{range .Containers}}{{.Name}} {{end}}'
 ```
 
-Services must implement the AI-Effect Control Interface:
+Services must implement the AI-Effect Control Interface. This is the only
+contract the orchestrator depends on:
 
 ```
 POST /control/execute        - Execute an operation
@@ -141,6 +142,29 @@ GET  /control/status/{id}    - Check task status
 GET  /control/output/{id}    - Get task output
 GET  /health                 - Health check
 ```
+
+These are the endpoints the orchestrator actually calls. `/control/execute`
+starts a task; `/control/status` and `/control/output` are polled for
+asynchronous tasks; `/health` is for monitoring. The orchestrator never
+transfers payloads itself — `/control/output` returns only a small
+**DataReference** (`{protocol, uri, format}`) that points at the data.
+
+**Serving the data is a service-side, data-plane concern — not part of the
+orchestrator contract.** The `uri` in a DataReference may point anywhere the
+producing service likes: its own HTTP endpoint, an object store, a presigned
+URL, a gRPC address, or inline bytes. The orchestrator neither calls that URI
+nor cares what is behind it; the *downstream service* resolves the reference.
+
+As a convenience, the service templates ship a default HTTP data endpoint:
+
+```
+GET  /control/data/{id}      - Serve raw payload bytes (optional convenience)
+```
+
+This is **optional**. A service is free to omit it and instead return
+`protocol: inline` (bytes embedded in the reference), `protocol: grpc` (its own
+gRPC endpoint), or an `http`/`s3` URI pointing at any other location. Nothing
+in the orchestrator changes either way.
 
 ## Architecture
 
@@ -170,12 +194,13 @@ GET  /health                 - Health check
 
 ### Communication Patterns
 
-**HTTP Control Interface** (all services):
+**HTTP Control Interface** (control plane — orchestrator ↔ service):
 - Orchestrator communicates with services via HTTP
-- Standard endpoints: `/control/execute`, `/control/status`, `/control/output`
+- Endpoints the orchestrator calls: `/control/execute`, `/control/status`, `/control/output`
+- Carries only commands and small DataReferences, never payloads
 
-**Data Exchange** (service-to-service):
-- **HTTP URLs** - Services return URLs to data, downstream services fetch directly
+**Data Exchange** (data plane — service ↔ service, orchestrator not involved):
+- **HTTP URLs** - Services return URLs to data, downstream services fetch directly (the templates' `/control/data/{id}` is one such URL, but any URL works)
 - **gRPC** - Services expose gRPC endpoints for direct data transfer
 - **Inline** - Small data embedded as base64 in responses
 
